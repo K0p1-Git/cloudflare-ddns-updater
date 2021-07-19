@@ -22,7 +22,7 @@ fi
 ## Check and set the proper auth header
 ###########################################
 if [ "${auth_method}" == "global" ]; then
-  auth_header="X-Auth-Email:"
+  auth_header="X-Auth-Key:"
 else
   auth_header="Authorization: Bearer"
 fi
