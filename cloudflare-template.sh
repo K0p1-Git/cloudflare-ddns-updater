@@ -1,10 +1,12 @@
 #!/bin/bash
 
 auth_email=""                                      # The email used to login 'https://dash.cloudflare.com'
-auth_key=""                                        # Top right corner, "My profile" > "Global API Key"
+auth_method="token"                                # Set to "global" for Global API Key or "token" for Scoped API Token 
+auth_key=""                                        # Your API Token or Global API Key
 zone_identifier=""                                 # Can be found in the "Overview" tab of your domain
 record_name=""                                     # Which record you want to be synced
-proxy=true                                         # Set the proxy to true or false 
+proxy=false                                        # Set the proxy to true or false
+
 
 
 ###########################################
@@ -16,9 +18,10 @@ function ds() {
 
 
 ###########################################
-## Check if we have an public IP
+## Check if we have a public IP
 ###########################################
 ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
+
 if [ "${ip}" == "" ]; then 
   message="$(ds) No public IP found."
   >&2 echo -e "${message}" >> ~/log
@@ -26,13 +29,23 @@ if [ "${ip}" == "" ]; then
 fi
 
 ###########################################
+## Check and set the proper auth header
+###########################################
+if [ "${auth_method}" == "global" ]; then
+  auth_header="X-Auth-Key:"
+else
+  auth_header="Authorization: Bearer"
+fi
+
+###########################################
 ## Seek for the A record
 ###########################################
+
 echo "$(ds) Check Initiated" >> ~/log
 record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?name=$record_name" -H "X-Auth-Email: $auth_email" -H "X-Auth-Key: $auth_key" -H "Content-Type: application/json")
 
 ###########################################
-## Check if the domaine has an A record
+## Check if the domain has an A record
 ###########################################
 if [[ $record == *"\"count\":0"* ]]; then
   message="$(ds) Record does not exist, perhaps create one first? (${ip} for ${record_name})"
@@ -41,7 +54,7 @@ if [[ $record == *"\"count\":0"* ]]; then
 fi
 
 ###########################################
-## Get the existing IP 
+## Get existing IP
 ###########################################
 old_ip=$(echo "$record" | grep -Po '(?<="content":")[^"]*' | head -1)
 # Compare if they're the same
@@ -61,7 +74,7 @@ record_identifier=$(echo "$record" | grep -Po '(?<="id":")[^"]*' | head -1)
 ###########################################
 update=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier" \
                      -H "X-Auth-Email: $auth_email" \
-                     -H "X-Auth-Key: $auth_key" \
+                     -H "$auth_header $auth_key" \
                      -H "Content-Type: application/json" \
               --data "{\"id\":\"$zone_identifier\",\"type\":\"A\",\"proxied\":${proxy},\"name\":\"$record_name\",\"content\":\"$ip\"}")
 
