@@ -58,8 +58,6 @@ fi
 ## Set the record identifier from result
 ###########################################
 record_identifier=$(echo "$record" | grep -Po '(?<="id":")[^"]*' | head -1)
-echo record! $record >> ~/log
-echo record ID! $record_identifier >> ~/log
 
 ###########################################
 ## Change the IP@Cloudflare using the API
