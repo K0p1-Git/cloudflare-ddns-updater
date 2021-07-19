@@ -1,4 +1,4 @@
-# Cloudflare Dynamic DNS IP Register
+# Cloudflare Dynamic DNS IP Updater
 
 This script is used to update dynamic DNS entries for accounts on Cloudflare.
 
@@ -20,8 +20,7 @@ This script is used with crontab. Specify the frequency of execution through cro
 # │ │ │ │ │ ┌───────────── command to issue                               
 # │ │ │ │ │ │
 # │ │ │ │ │ │
-# * * * * * cd /{location of repo} && /{location of repo}/cloudflare-template.sh >> /cron.log 2>&1
-# 0 0 */3 * * echo " " > /cloudflare-autoupdate.log >> /cron.log 2>&1
+# * * * * * /bin/bash {Location of the script}
 ```
 
 ## Contributing
