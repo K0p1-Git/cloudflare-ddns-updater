@@ -1,4 +1,5 @@
 # Cloudflare Dynamic DNS IP Updater
+<img alt="GitHub" src="https://img.shields.io/github/license/K0p1-Git/cloudflare-ddns-updater?color=black"> <img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/K0p1-Git/cloudflare-ddns-updater/main"> <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/K0p1-Git/cloudflare-ddns-updater">
 
 This script is used to update dynamic DNS entries for accounts on Cloudflare.
 
