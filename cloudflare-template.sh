@@ -11,7 +11,7 @@ proxy=true                                         # Set the proxy to true or fa
 ## Define date time stamp function
 ###########################################
 function ds() {
-            date +"[%F %T]"
+  date +"[%F %T]"
 }
 
 
