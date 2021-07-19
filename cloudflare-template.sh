@@ -8,12 +8,22 @@ record_name=""                                     # Which record you want to be
 proxy=false                                        # Set the proxy to true or false
 
 
+
+###########################################
+## Define date time stamp function
+###########################################
+function ds() {
+  date +"[%F %T]"
+}
+
+
 ###########################################
 ## Check if we have a public IP
 ###########################################
 ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
-if [ "${ip}" == "" ]; then
-  message="No public IP found."
+
+if [ "${ip}" == "" ]; then 
+  message="$(ds) No public IP found."
   >&2 echo -e "${message}" >> ~/log
   exit 1
 fi
@@ -30,15 +40,15 @@ fi
 ###########################################
 ## Seek for the A record
 ###########################################
-echo " Check Initiated" >> ~/log
-record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?name=$record_name" -H "X-Auth-Email: $auth_email" -H "$auth_header $auth_key" -H "Content-Type: application/json")
 
+echo "$(ds) Check Initiated" >> ~/log
+record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?name=$record_name" -H "X-Auth-Email: $auth_email" -H "X-Auth-Key: $auth_key" -H "Content-Type: application/json")
 
 ###########################################
 ## Check if the domain has an A record
 ###########################################
 if [[ $record == *"\"count\":0"* ]]; then
-  message=" Record does not exist, perhaps create one first? (${ip} for ${record_name})"
+  message="$(ds) Record does not exist, perhaps create one first? (${ip} for ${record_name})"
   >&2 echo -e "${message}" >> ~/log
   exit 1
 fi
@@ -49,7 +59,7 @@ fi
 old_ip=$(echo "$record" | grep -Po '(?<="content":")[^"]*' | head -1)
 # Compare if they're the same
 if [[ $ip == $old_ip ]]; then
-  message=" IP ($ip) for ${record_name} has not changed."
+  message="$(ds) IP ($ip) for ${record_name} has not changed."
   echo "${message}" >> ~/log
   exit 0
 fi
@@ -73,11 +83,11 @@ update=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zone_identi
 ###########################################
 case "$update" in
 *"\"success\":false"*)
-  message="$ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
+  message="$(ds) $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
   >&2 echo -e "${message}" >> ~/log
   exit 1;;
 *)
-  message="$ip $record_name DDNS updated."
+  message="$(ds) $ip $record_name DDNS updated."
   echo "${message}" >> ~/log
   exit 0;;
 esac
