@@ -48,7 +48,7 @@ fi
 ###########################################
 old_ip=$(echo "$record" | grep -Po '(?<="content":")[^"]*' | head -1)
 # Compare if they're the same
-if [[ $ip == $old_ip ]]; then
+if [[ $ip == "${old_ip}" ]]; then
   logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
   exit 0
 fi
