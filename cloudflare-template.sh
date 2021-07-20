@@ -1,13 +1,40 @@
 #!/bin/bash
+set -u
 
-auth_email=""                                      # The email used to login 'https://dash.cloudflare.com'
-auth_method="token"                                # Set to "global" for Global API Key or "token" for Scoped API Token 
-auth_key=""                                        # Your API Token or Global API Key
-zone_identifier=""                                 # Can be found in the "Overview" tab of your domain
-record_name=""                                     # Which record you want to be synced
-proxy=false                                        # Set the proxy to true or false
+auth_email="${DDNS_AUTH_EMAIL:-}"                  # The email used to login 'https://dash.cloudflare.com'
+auth_method="${DDNS_AUTH_METHOD:-token}"           # Set to "global" for Global API Key or "token" for Scoped API Token
+auth_key="${DDNS_AUTH_KEY:-}"                      # Your API Token or Global API Key
+zone_identifier="${DDNS_ZONE_IDENTIFIER:-}"        # Can be found in the "Overview" tab of your domain
+record_name="${DDNS_RECORD_NAME:-}"                # Which record you want to be synced
+proxy="${DDNS_PROXY:-false}"                       # Set the proxy to true or false
 
-
+###########################################
+## Validate variables have been set
+###########################################
+if [ -z "${auth_email}" ]; then
+  logger "DDNS Updater: DDNS_AUTH_EMAIL was unset"
+  exit 1
+fi
+if [ -z "${auth_method}" ]; then
+  logger "DDNS Updater: DDNS_AUTH_METHOD was unset"
+  exit 1
+fi
+if [ -z "${auth_key}" ]; then
+  logger "DDNS Updater: DDNS_AUTH_KEY was unset"
+  exit 1
+fi
+if [ -z "${zone_identifier}" ]; then
+  logger "DDNS Updater: DDNS_ZONE_IDENTIFIER was unset"
+  exit 1
+fi
+if [ -z "${record_name}" ]; then
+  logger "DDNS Updater: DDNS_RECORD_NAME was unset"
+  exit 1
+fi
+if [ -z "${proxy}" ]; then
+  logger "DDNS Updater: DDNS_PROXY was unset"
+  exit 1
+fi
 
 ###########################################
 ## Check if we have a public IP
