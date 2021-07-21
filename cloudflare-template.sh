@@ -15,7 +15,7 @@ proxy=false                                        # Set the proxy to true or fa
 ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
 
 if [ "${ip}" == "" ]; then 
-  logger "DDNS Updater: No public IP found"
+  logger -s "DDNS Updater: No public IP found"
   exit 1
 fi
 
@@ -39,7 +39,7 @@ record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identi
 ## Check if the domain has an A record
 ###########################################
 if [[ $record == *"\"count\":0"* ]]; then
-  logger "DDNS Updater: Record does not exist, perhaps create one first? (${ip} for ${record_name})"
+  logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${ip} for ${record_name})"
   exit 1
 fi
 
@@ -72,7 +72,7 @@ update=$(curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zone_identi
 ###########################################
 case "$update" in
 *"\"success\":false"*)
-  logger "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
+  logger -s "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
   exit 1;;
 *)
   logger "DDNS Updater: $ip $record_name DDNS updated."
