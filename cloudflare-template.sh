@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 auth_email=""                                      # The email used to login 'https://dash.cloudflare.com'
 auth_method="token"                                # Set to "global" for Global API Key or "token" for Scoped API Token 
@@ -46,7 +46,7 @@ fi
 ###########################################
 ## Get existing IP
 ###########################################
-old_ip=$(echo "$record" | grep -Po '(?<="content":")[^"]*' | head -1)
+old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
 # Compare if they're the same
 if [[ $ip == $old_ip ]]; then
   logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
@@ -56,7 +56,7 @@ fi
 ###########################################
 ## Set the record identifier from result
 ###########################################
-record_identifier=$(echo "$record" | grep -Po '(?<="id":")[^"]*' | head -1)
+record_identifier=$(echo "$record" | sed -E 's/.*"id":"(\w+)".*/\1/')
 
 ###########################################
 ## Change the IP@Cloudflare using the API
