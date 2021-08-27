@@ -13,9 +13,17 @@ proxy=false                                        # Set the proxy to true or fa
 ###########################################
 ## Check if we have a public IP
 ###########################################
-ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
 
-if [ "${ip}" == "" ]; then 
+## Public IP Sources/APIs
+public_ip_sources=(
+  "https://api.ipify.org/"
+  "https://ipv4.icanhazip.com/"
+  "https://dynamicdns.park-your-domain.com/getip"
+)
+
+ip=$(curl -s ${public_ip_sources[@]})
+
+if [[ $ip == "" ]]; then 
   logger -s "DDNS Updater: No public IP found"
   exit 1
 fi
