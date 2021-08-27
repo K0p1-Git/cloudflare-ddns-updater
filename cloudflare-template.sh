@@ -21,8 +21,17 @@ public_ip_sources=(
   "https://dynamicdns.park-your-domain.com/getip"
 )
 
-ip=$(curl -s ${public_ip_sources[@]})
+## Checks each Source/API for an IP and returns only one
+for src in "${public_ip_sources[@]}"; do
+  ip=$(curl -s $src)
+  if [[ $ip == "" ]]; then
+    continue    # continues checking for IP for each ip source till there is none
+  else
+    break       # if IP is found, break the loop
+  fi
+done
 
+## If no IP is still found
 if [[ $ip == "" ]]; then 
   logger -s "DDNS Updater: No public IP found"
   exit 1
