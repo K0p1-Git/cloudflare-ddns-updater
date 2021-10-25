@@ -8,6 +8,9 @@ zone_identifier=""                                 # Can be found in the "Overvi
 record_name=""                                     # Which record you want to be synced
 ttl="3600"                                         # Set the DNS TTL (seconds)
 proxy=false                                        # Set the proxy to true or false
+slacksitename=""                                   # Title of site "Example Site"
+slackchannel=""                                    # Slack Channel #example
+slackuri=""                                        # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 
 
 
@@ -78,8 +81,18 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
 case "$update" in
 *"\"success\":false"*)
   logger -s "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
+  curl -L -X POST $slackuri \
+  --data-raw '{
+    "channel": "'$slackchannel'",
+    "text" : "'"$slacksitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+  }'
   exit 1;;
 *)
   logger "DDNS Updater: $ip $record_name DDNS updated."
+  curl -L -X POST $slackuri \
+  --data-raw '{
+    "channel": "'$slackchannel'",
+    "text" : "'"$slacksitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+  }'
   exit 0;;
 esac
