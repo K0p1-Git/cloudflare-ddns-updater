@@ -12,6 +12,8 @@ slacksitename=""                                   # Title of site "Example Site
 slackchannel=""                                    # Slack Channel #example
 slackuri=""                                        # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 
+tolerant_is_set=0
+
 debug_output_echo () {
   if [ ! -z $debug_mode_active ]; then
     if [ $debug_mode_active -eq 1 ]; then
@@ -48,7 +50,7 @@ cf_ddns_ip () {
 
   if [ "${ip}" == "" ]; then
     logger_output="DDNS Updater: No public IP found"
-	debug_output+=$logger_output"\n"
+    debug_output+=$logger_output"\n"
     logger -s $logger_output
    # excode=1; exit_code
     #no point going on if can not get ip
@@ -107,7 +109,6 @@ cf_ddns_currentip () {
     logger_output="DDNS Updater: IP ($ip) for ${record_name} has not changed."
     debug_output+=$logger_output"\n"
     logger -s $logger_output
-	logger logger_output
     excode=0; exit_code
   fi
 }
@@ -179,23 +180,139 @@ cf_ddns() {
   fi
 }
 
+cf_counting_sheep () { 
+  datestart=$(date +%Y/%m/%d\ %H:%M:%S)
+  dateend=$(date --date="+$parameter_value seconds" +"%Y-%m-%d %H:%M:%S")
+  logger_output="DDNS Updater: counting sheep ($parameter_value) $datestart : $dateend"
+  debug_output+=$logger_output"\n"
+  logger -s $logger_output
+  sleep $parameter_value
+}
+
+cf_help () {
+  echo "# crontab\n"
+  echo "*/5 * * * * /bin/bash /home/user/cloudflare-ddns-updater/cloudflare-init.sh"
+  echo '*/5 * * * * /bin/bash /home/user/cloudflare-ddns-updater/cloudflare-init.sh -tolerant mydomain.com example.com www.example.com x1.example.com'
+  echo '*/5 * * * * /bin/bash /home/user/cloudflare-ddns-updater/cloudflare-init.sh -tolerant mydomain.com -sleep=10 example.com -proxy=false www.example.com -auth_ttl=10 x1.example.com'
+  echo "Add in -tolerant option that get continue if when reason to exit, this should be first parameter"
+  echo "-sleep=X will make it sleep for X seconds before doing proceeding domains"
+  echo "-rsleep=X will random range from 0 to X seconds"
+  echo "-auth_email=X it for this will change it for proceeding domains"
+  echo "-auth_method=X it for this will change it for proceeding domains"
+  echo "-auth_key=X it for this will change it for proceeding domains"
+  echo "-auth_identifier=X it for this will change it for proceeding domains"
+  echo "-auth_ttl=X it for this will change it for proceeding domains"
+  echo "-auth_proxy=X it for this will change it for proceeding domains"
+}
+
+cf_tolerant () {
+  tolerant_is_set=1
+  logger_output="DDNS Updater: Been set as being tolerant"
+  debug_output+=$logger_output"\n"
+  logger $logger_output
+}
+
+cf_rsleep () {
+  logger_output="DDNS Updater: rsleep range ($parameter_value) : "
+  parameter_temp=$(( $parameter_value+1 ))
+  parameter_value=$(( $RANDOM % $parameter_temp ))
+  logger_output+="($parameter_value)"
+  debug_output+=$logger_output"\n"
+  logger $logger_output
+  cf_counting_sheep
+}
+
+cf_auth_email () {
+  logger_output="DDNS Updater: Changed [auth_email]"
+  debuger_output+="$logger_output ($parameter_value)\n"
+  logger $logger_output
+  auth_email=$parameter_value
+}
+
+cf_auth_method () {
+  logger_output="DDNS Updater: Changed [auth_method]"
+  if [ $parameter_value = "token" ] || [ $parameter_value = "global" ]; then
+    logger_output+=" ($parameter_value)"
+    auth_method=$parameter_value
+    logger $logger_output
+  else
+    logger_output+=" ($parameter_value) is invalied option"
+    logger -s $logger_output
+  fi
+  debug_output+=$logger_output"\n"
+}
+
+cf_auth_key () {
+  logger_output="DDNS Updater: Change [auth_key]"
+  debug_ouput+="$logger_output ($parameter_value)"
+  logger $logger_output
+  auth_key=$parameter_value
+}
+
+cf_zone_identifier () {
+  logger_output="DDNS Updater: Change [zone_identifier]"
+  debug_ouput+="$logger_output ($parameter_value)"
+  logger $logger_output
+  zone_identifier=$parameter_value
+}
+
+cf_ttl () {
+  logger_output="DDNS Updater: Change [ttl]"
+  debug_ouput+="$logger_output ($parameter_value)"
+  logger $logger_output
+  ttl=$parameter_value
+}
+
+cf_proxy () {
+  logger_output="DDNS Updater: Changed [proxy]"
+  if [ $parameter_value = "true" ] || [ $parameter_value = "false" ]; then
+    logger_output+=" ($parameter_value)"
+    proxy=$parameter_value
+    logger $logger_output
+  else
+    logger_output+=" ($parameter_value) is invalied option"
+    logger -s $logger_output
+  fi
+  debug_output+=$logger_output"\n"
+}
+
 cf_parameter_commands () {
-  case ${parameter_current:1} in
+  parameter_temp=${parameter_current:1}
+  parameter_command=${parameter_temp%=*}
+  parameter_value=${parameter_temp##*=}
+  case $parameter_command in
     "debug")
       debug_mode_active=1
       ;;
     "help")
-      echo "# crontab\n"
-      echo "*/5 * * * * /bin/bash /home/user/cloudflare-ddns-updater/cloudflare-init.sh"
-      echo '*/5 * * * * /bin/bash /home/user/cloudflare-ddns-updater/cloudflare-init.sh mydomain.com example.com www.example.com x1.example.com'
-      echo -e "\nAdd in -tolerant option that get continue if when reason to exit, this should be first parameter\n"
-      echo -e $output_help
+      cf_help
       ;;
     "tolerant")
-      tolerant_is_set=1
-      logger_output="DDNS Updater: Been set as being tolerant"
-      debug_output+=$logger_output"\n"
-      logger $logger_output
+      cf_tolerant
+      ;;
+    "sleep")
+      cf_counting_sheep
+      ;;
+    "rsleep")
+      cf_rsleep
+      ;;
+    "auth_email")
+      cf_auth_email
+      ;;
+    "auth_method")
+      cf_auth_method
+      ;;
+    "auth_key")
+      cf_auth_key
+      ;;
+    "zone_identifier")
+      cf_zone_identifier
+      ;;
+    "ttl")
+      cf_ttl
+      ;;
+    "proxy")
+      cf_proxy
       ;;
      *)
       logger_output="DDNS Updater: invalid parameter option been defined [${parameter_current}]"
@@ -256,7 +373,6 @@ cf_err_human () {
 }
 
 argument_total=$#
-#top_exit_code=-999
 debug_output=""
 cf_err_human
 
