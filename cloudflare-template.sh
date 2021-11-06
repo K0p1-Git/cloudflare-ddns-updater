@@ -81,18 +81,22 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
 case "$update" in
 *"\"success\":false"*)
   logger -s "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
-  curl -L -X POST $slackuri \
-  --data-raw '{
-    "channel": "'$slackchannel'",
-    "text" : "'"$slacksitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
-  }'
+  if [[ $slackuri != "" ]]; then
+    curl -L -X POST $slackuri \
+    --data-raw '{
+      "channel": "'$slackchannel'",
+      "text" : "'"$slacksitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+    }'
+  fi
   exit 1;;
 *)
   logger "DDNS Updater: $ip $record_name DDNS updated."
-  curl -L -X POST $slackuri \
-  --data-raw '{
-    "channel": "'$slackchannel'",
-    "text" : "'"$slacksitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
-  }'
+  if [[ $slackuri != "" ]]; then
+    curl -L -X POST $slackuri \
+    --data-raw '{
+      "channel": "'$slackchannel'",
+      "text" : "'"$slacksitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+    }'
+  fi
   exit 0;;
 esac
