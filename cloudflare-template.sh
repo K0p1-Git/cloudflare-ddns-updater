@@ -165,9 +165,9 @@ cf_ddns() {
   if [ ${#ip} -eq 0 ]; then
   #Only worth getting current IP address with first domain
     cf_ddns_ip
-    cf_ddns_authheader
   fi
 
+  cf_ddns_authheader
   cf_ddns_seeka
   cf_ddns_checka
   if [ $cf_nonexistsrecord -eq 1 ]; then
