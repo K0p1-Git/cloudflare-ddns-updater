@@ -276,6 +276,20 @@ cf_proxy () {
   debug_output+=$logger_output"\n"
 }
 
+cf_ipset () {
+  ip=$parameter_value
+  logger_output="DDNS Updater: IP been set to $ip"
+  logger $logger_output
+  debug_ouput+=logger_output"\n"
+}
+
+cd_ipcheck () {
+  ip=""
+  logger_output="DDNS Updater: IP been set to do a recheck"
+  logger $logger_output
+  debug_ouput+=logger_output"\n"
+}
+
 cf_parameter_commands () {
   parameter_temp=${parameter_current:1}
   parameter_command=${parameter_temp%=*}
@@ -313,6 +327,12 @@ cf_parameter_commands () {
       ;;
     "proxy")
       cf_proxy
+      ;;
+    "ipset")
+      cf_ipset
+      ;;
+    "ipcheck"
+      cf_ipcheck
       ;;
      *)
       logger_output="DDNS Updater: invalid parameter option been defined [${parameter_current}]"
