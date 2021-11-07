@@ -224,7 +224,7 @@ cf_rsleep () {
 
 cf_auth_email () {
   logger_output="DDNS Updater: Changed [auth_email]"
-  debuger_output+="$logger_output ($parameter_value)\n"
+  debug_output+="$logger_output ($parameter_value)\n"
   logger $logger_output
   auth_email=$parameter_value
 }
@@ -241,24 +241,24 @@ cf_auth_method () {
   fi
   debug_output+=$logger_output"\n"
 }
-
+debug
 cf_auth_key () {
   logger_output="DDNS Updater: Change [auth_key]"
-  debug_ouput+="$logger_output ($parameter_value)"
+  debug_output+="$logger_output ($parameter_value)"
   logger $logger_output
   auth_key=$parameter_value
 }
 
 cf_zone_identifier () {
   logger_output="DDNS Updater: Change [zone_identifier]"
-  debug_ouput+="$logger_output ($parameter_value)"
+  debug_output+="$logger_output ($parameter_value)"
   logger $logger_output
   zone_identifier=$parameter_value
 }
 
 cf_ttl () {
   logger_output="DDNS Updater: Change [ttl]"
-  debug_ouput+="$logger_output ($parameter_value)"
+  debug_output+="$logger_output ($parameter_value)"
   logger $logger_output
   ttl=$parameter_value
 }
@@ -280,14 +280,14 @@ cf_ipset () {
   ip=$parameter_value
   logger_output="DDNS Updater: IP been set to $ip"
   logger $logger_output
-  debug_ouput+=logger_output"\n"
+  debug_output+=logger_output"\n"
 }
 
-cd_ipcheck () {
+cf_ipcheck () {
   ip=""
   logger_output="DDNS Updater: IP been set to do a recheck"
   logger $logger_output
-  debug_ouput+=logger_output"\n"
+  debug_output+=logger_output"\n"
 }
 
 cf_parameter_commands () {
