@@ -4,20 +4,20 @@
 cf_email=$1
 cf_apikey=$2
 cf_record=$3
+cf_zoneid=$4
+
+talk_roomuri=$5
+talk_username=$6
+talk_token=$7
 
 
-talk_roomuri=$4
-talk_username=$5
-talk_token=$6
-
-
-auth_email=$1                                      # The email used to login 'https://dash.cloudflare.com'
+auth_email=$cf_email                               # The email used to login 'https://dash.cloudflare.com'
 auth_method="token"                                # Set to "global" for Global API Key or "token" for Scoped API Token 
-auth_key=$2                                        # Your API Token or Global API Key
-zone_identifier=""                                 # Can be found in the "Overview" tab of your domain
-record_name=$3                                     # Which record you want to be synced
+auth_key=$cf_apikey                                # Your API Token or Global API Key
+zone_identifier=$cf_zoneid                         # Can be found in the "Overview" tab of your domain
+record_name=$cf_record                             # Which record you want to be synced
 ttl="3600"                                         # Set the DNS TTL (seconds)
-proxy=false                                        # Set the proxy to true or false
+proxy=true                                         # Set the proxy to true or false
 talkroomuri=$talk_roomuri                          # URI for nextcloud talk webhook "https://nextcloud.holzeis.me/ocs/v2.php/apps/spreed/api/v1/chat/xxxxx"
 talkusername=$talk_username                        # Webhook user name (needs to be moderator of chat)
 talktoken=$talk_token                              # API Token for user name
