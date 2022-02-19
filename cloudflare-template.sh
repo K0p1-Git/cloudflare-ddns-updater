@@ -21,7 +21,8 @@ command -v dig &> /dev/null
 # Use the DNS lookup if dig is available.
 if [[ $? -eq 0 ]]; then 
     ip=$(dig +short myip.opendns.com @resolver1.opendns.com);
-else
+fi
+if [[ $ip -eq "" ]]; then
     ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
 fi
 
