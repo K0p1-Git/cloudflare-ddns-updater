@@ -17,18 +17,16 @@ slackuri=""                                        # URI for Slack WebHook "http
 ###########################################
 ## Check if we have a public IP
 ###########################################
-command -v dig &> /dev/null
-# Use the DNS lookup if dig is available.
-if [[ $? -eq 0 ]]; then 
+# Use curl if curl is available
+if [[ $(command -v curl &> /dev/null; echo $?) ]]; then
+    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
+elif [[ $(command -v dig &> /dev/null; echo $?) ]]; then
     ip=$(dig +short myip.opendns.com @resolver1.opendns.com);
 fi
-if [[ $ip -eq "" ]]; then
-    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
-fi
 
-if [[ "${ip}" == "" ]]; then 
-  logger -s "DDNS Updater: No public IP found"
-  exit 1
+if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+    logger -s "DDNS Updater: Failed to find a valid IP."
+    exit 1
 fi
 
 ###########################################
