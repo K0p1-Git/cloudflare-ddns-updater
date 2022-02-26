@@ -19,7 +19,7 @@ slackuri=""                                        # URI for Slack WebHook "http
 ###########################################
 # Use curl if curl is installed on the system.
 if [[ $(command -v curl &> /dev/null; echo $?) ]]; then
-    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
+    ip=$(curl -s https://cloudflare.com/cdn-cgi/trace | grep -E '^ip' | sed -E 's/^ip=([0-9\.]*)$/\1/' || curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
 else
     logger -s "Error: 'curl' was not found on your system. Install it with 'sudo apt install curl' in order to use this script"
     exit 1
@@ -28,7 +28,7 @@ fi
 # Use regex to check for proper IPv4 format. Try using 'dig' if curl requests failed.
 ipv4_regex='^([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$'
 if [[ ! $ip =~ $ipv4_regex ]]; then
-    logger -s "Warning: Neither 'api.ipify.org' nor 'ipv4.icanhazip.com' were able to obtain your ip-address. Trying to use less secure DNS lookup on 'myip.opendns.com' through 'dig' instead."
+    logger -s "Warning: Neither 'cloudflare.com', 'api.ipify.org' nor 'ipv4.icanhazip.com' were able to obtain your ip-address. Trying to use less secure DNS lookup on 'myip.opendns.com' through 'dig' instead."
     if [[ $(command -v dig &> /dev/null; echo $?) ]]; then
         ip=$(dig +short myip.opendns.com @resolver1.opendns.com)
     fi
