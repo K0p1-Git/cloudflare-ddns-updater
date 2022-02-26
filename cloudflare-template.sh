@@ -24,7 +24,7 @@ elif [[ $(command -v dig &> /dev/null; echo $?) ]]; then
     ip=$(dig +short myip.opendns.com @resolver1.opendns.com);
 fi
 
-if [[ ! $ip =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+if [[ ! $ip =~ ^([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
     logger -s "DDNS Updater: Failed to find a valid IP."
     exit 1
 fi
