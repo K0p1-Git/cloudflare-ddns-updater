@@ -17,26 +17,20 @@ slackuri=""                                        # URI for Slack WebHook "http
 ###########################################
 ## Check if we have a public IP
 ###########################################
-# Use curl if curl is installed on the system.
-if [[ $(command -v curl &> /dev/null; echo $?) ]]; then
-    ip=$(curl -s https://cloudflare.com/cdn-cgi/trace | grep -E '^ip' | sed -E 's/^ip=([0-9\.]*)$/\1/' || curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
+ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
+ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret=$?
+if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
+    # Attempt to get the ip from other websites.
+    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
 else
-    logger -s "Error: 'curl' was not found on your system. Install it with 'sudo apt install curl' in order to use this script"
-    exit 1
+    # Extract just the ip from the ip line from cloudflare.
+    ip=$(echo $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
 fi
 
-# Use regex to check for proper IPv4 format. Try using 'dig' if curl requests failed.
-ipv4_regex='^([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$'
+# Use regex to check for proper IPv4 format.
 if [[ ! $ip =~ $ipv4_regex ]]; then
-    logger -s "Warning: Neither 'cloudflare.com', 'api.ipify.org' nor 'ipv4.icanhazip.com' were able to obtain your ip-address. Trying to use less secure DNS lookup on 'myip.opendns.com' through 'dig' instead."
-    if [[ $(command -v dig &> /dev/null; echo $?) ]]; then
-        ip=$(dig +short myip.opendns.com @resolver1.opendns.com)
-    fi
-    # Also sanitize the 'dig' output through the same regex as before.
-    if [[ ! $ip =~ $ipv4_regex ]]; then
-        logger -s "DDNS Updater: Failed to find a valid IP."
-        exit 2
-    fi
+    logger -s "DDNS Updater: Failed to find a valid IP."
+    exit 2
 fi
 
 ###########################################
