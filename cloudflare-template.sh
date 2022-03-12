@@ -28,7 +28,7 @@ else
 fi
 
 # Use regex to check for proper IPv4 format.
-if [[ ! $ip =~ $ipv4_regex ]]; then
+if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
     logger -s "DDNS Updater: Failed to find a valid IP."
     exit 2
 fi
