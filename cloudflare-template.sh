@@ -7,7 +7,7 @@ auth_key=""                                        # Your API Token or Global AP
 zone_identifier=""                                 # Can be found in the "Overview" tab of your domain
 record_name=""                                     # Which record you want to be synced
 ttl="3600"                                         # Set the DNS TTL (seconds)
-proxy=false                                        # Set the proxy to true or false
+proxy="false"                                        # Set the proxy to true or false
 slacksitename=""                                   # Title of site "Example Site"
 slackchannel=""                                    # Slack Channel #example
 slackuri=""                                        # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
@@ -17,17 +17,26 @@ slackuri=""                                        # URI for Slack WebHook "http
 ###########################################
 ## Check if we have a public IP
 ###########################################
-ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com/)
+ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
+ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret=$?
+if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
+    # Attempt to get the ip from other websites.
+    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
+else
+    # Extract just the ip from the ip line from cloudflare.
+    ip=$(echo $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
+fi
 
-if [ "${ip}" == "" ]; then 
-  logger -s "DDNS Updater: No public IP found"
-  exit 1
+# Use regex to check for proper IPv4 format.
+if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
+    logger -s "DDNS Updater: Failed to find a valid IP."
+    exit 2
 fi
 
 ###########################################
 ## Check and set the proper auth header
 ###########################################
-if [ "${auth_method}" == "global" ]; then
+if [[ "${auth_method}" == "global" ]]; then
   auth_header="X-Auth-Key:"
 else
   auth_header="Authorization: Bearer"
@@ -73,14 +82,14 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
                      -H "X-Auth-Email: $auth_email" \
                      -H "$auth_header $auth_key" \
                      -H "Content-Type: application/json" \
-              --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
+                     --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
 
 ###########################################
 ## Report the status
 ###########################################
 case "$update" in
 *"\"success\":false"*)
-  logger -s "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update"
+  echo -e "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s 
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
     --data-raw '{
