@@ -1,17 +1,17 @@
 #!/bin/bash
 ## change to "bin/sh" when necessary
 
-auth_email=""                                      # The email used to login 'https://dash.cloudflare.com'
-auth_method="token"                                # Set to "global" for Global API Key or "token" for Scoped API Token 
-auth_key=""                                        # Your API Token or Global API Key
-zone_identifier=""                                 # Can be found in the "Overview" tab of your domain
-record_name=""                                     # Which record you want to be synced
-ttl="3600"                                         # Set the DNS TTL (seconds)
-proxy="false"                                        # Set the proxy to true or false
-slacksitename=""                                   # Title of site "Example Site"
-slackchannel=""                                    # Slack Channel #example
-slackuri=""                                        # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
-
+auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
+auth_method="token"                                 # Set to "global" for Global API Key or "token" for Scoped API Token
+auth_key=""                                         # Your API Token or Global API Key
+zone_identifier=""                                  # Can be found in the "Overview" tab of your domain
+record_name=""                                      # Which record you want to be synced
+ttl="3600"                                          # Set the DNS TTL (seconds)
+proxy="false"                                       # Set the proxy to true or false
+sitename=""                                         # Title of site "Example Site"
+slackchannel=""                                     # Slack Channel #example
+slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
+discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
 
 
 ###########################################
@@ -94,8 +94,14 @@ case "$update" in
     curl -L -X POST $slackuri \
     --data-raw '{
       "channel": "'$slackchannel'",
-      "text" : "'"$slacksitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+      "text" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
     }'
+  fi
+  if [[ $discorduri != "" ]]; then
+    curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+    --data-raw '{
+      "content" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+    }' $discorduri
   fi
   exit 1;;
 *)
@@ -104,8 +110,14 @@ case "$update" in
     curl -L -X POST $slackuri \
     --data-raw '{
       "channel": "'$slackchannel'",
-      "text" : "'"$slacksitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+      "text" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
     }'
+  fi
+  if [[ $discorduri != "" ]]; then
+    curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+    --data-raw '{
+      "content" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+    }' $discorduri
   fi
   exit 0;;
 esac
