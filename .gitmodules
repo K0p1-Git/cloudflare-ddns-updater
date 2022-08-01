@@ -1,0 +1,3 @@
+[submodule "pushover-bash"]
+	path = pushover-bash
+	url = https://github.com/akusei/pushover-bash.git
