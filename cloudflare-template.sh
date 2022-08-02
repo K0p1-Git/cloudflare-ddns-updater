@@ -13,6 +13,11 @@ slackchannel=""                                     # Slack Channel #example
 slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
 
+##### pushover #####
+push_token=""					    # The pushover.net API Key for your application
+push_key=""					    # Your pushover.net user key
+push_device=""					    # Comma seperated list of devices to receive message
+
 
 ###########################################
 ## Check if we have a public IP
@@ -103,8 +108,12 @@ case "$update" in
       "content" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
     }' $discorduri
   fi
+  if [[ $push_token != "" ]]; then
+    script_dir="$(dirname $(realpath $=))"
+    $script_dir/pushover-bash/pushover.sh  -t $push_token -u $push_key -T "Cloudflare-DDNS" -m "$sitename DDNS Update Failed: $record_name: $record_identifier $ip." -d "$push_device"
+  fi
   exit 1;;
-*)
+*"\"success\":true"*)
   logger "DDNS Updater: $ip $record_name DDNS updated."
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
@@ -118,6 +127,10 @@ case "$update" in
     --data-raw '{
       "content" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
     }' $discorduri
+  fi
+  if [[ $push_token != "" ]]; then
+    script_dir="$(dirname $(realpath $=))"
+    $script_dir/pushover-bash/pushover.sh  -t $push_token -u $push_key -T "Cloudflare-DDNS" -m "$sitename Updated: $record_name. New IP Address is $ip" -d "$push_device"
   fi
   exit 0;;
 esac
