@@ -107,7 +107,7 @@ case "$update" in
   if [[ $telegramtoken != "" ]] && [[ $telegramchatid != "" ]]; then
     curl -H 'Content-Type: application/json' -X POST \
     --data-raw '{
-      "chat_id": "'$telegramchatid'", "text": "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip').", "disable_notification": true
+      "chat_id": "'$telegramchatid'", "text": "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
     }' https://api.telegram.org/bot$telegramtoken/sendMessage
   fi
   exit 1;;
@@ -129,7 +129,7 @@ case "$update" in
   if [[ $telegramtoken != "" ]] && [[ $telegramchatid != "" ]]; then
   curl -H 'Content-Type: application/json' -X POST \
   --data-raw '{
-    "chat_id": "'$telegramchatid'", "text": "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'", "disable_notification": true
+    "chat_id": "'$telegramchatid'", "text": "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
   }' https://api.telegram.org/bot$telegramtoken/sendMessage
   fi
   exit 0;;
