@@ -34,6 +34,25 @@ if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
 fi
 
 ###########################################
+## Check for the old IP record
+###########################################
+wan_ip_record=$HOME/.cf-wan_ip_$record_name.txt
+if [ -f $wan_ip_record ]; then
+    old_ip=`cat $wan_ip_record`
+else
+    logger "DDNS Updater: No old IP record found."
+    old_ip=""
+fi
+
+###########################################
+## Compare existing IP record to new IP
+###########################################
+if [[ $ip == $old_ip ]]; then
+    logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
+    exit 0
+fi
+
+###########################################
 ## Check and set the proper auth header
 ###########################################
 if [[ "${auth_method}" == "global" ]]; then
@@ -58,16 +77,6 @@ record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identi
 if [[ $record == *"\"count\":0"* ]]; then
   logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${ip} for ${record_name})"
   exit 1
-fi
-
-###########################################
-## Get existing IP
-###########################################
-old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
-# Compare if they're the same
-if [[ $ip == $old_ip ]]; then
-  logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
-  exit 0
 fi
 
 ###########################################
@@ -106,6 +115,10 @@ case "$update" in
   exit 1;;
 *)
   logger "DDNS Updater: $ip $record_name DDNS updated."
+  
+  # echo our new ip to the record
+  echo $ip > $wan_ip_record
+  
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
     --data-raw '{
