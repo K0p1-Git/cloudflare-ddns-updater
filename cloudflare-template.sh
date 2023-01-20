@@ -52,6 +52,12 @@ record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identi
                       -H "$auth_header $auth_key" \
                       -H "Content-Type: application/json")
 
+logger "DDNS Updater: Check Initiated"
+record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name" \
+                      -H "X-Auth-Email: $auth_email" \
+                      -H "$auth_header $auth_key" \
+                      -H "Content-Type: application/json")
+
 ###########################################
 ## Check if the domain has an A record
 ###########################################
@@ -60,9 +66,21 @@ if [[ $record == *"\"count\":0"* ]]; then
   exit 1
 fi
 
+if [[ $record == *"\"count\":0"* ]]; then
+  logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${ip} for ${record_name})"
+  exit 1
+fi
+
 ###########################################
 ## Get existing IP
 ###########################################
+old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
+# Compare if they're the same
+if [[ $ip == $old_ip ]]; then
+  logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
+  exit 0
+fi
+
 old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
 # Compare if they're the same
 if [[ $ip == $old_ip ]]; then
