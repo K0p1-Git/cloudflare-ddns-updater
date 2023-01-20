@@ -70,6 +70,13 @@ if [[ $ip == $old_ip ]]; then
   exit 0
 fi
 
+old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
+# Compare if they're the same
+if [[ $ip == $old_ip ]]; then
+  logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
+  exit 0
+fi
+
 ###########################################
 ## Set the record identifier from result
 ###########################################
