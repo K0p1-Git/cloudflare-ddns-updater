@@ -17,6 +17,11 @@ discorduri=""                                       # URI for Discord WebHook "h
 ###########################################
 ## Check if we have a public IP
 ###########################################
+
+
+exit 0
+
+
 ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
 ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret=$?
 if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
