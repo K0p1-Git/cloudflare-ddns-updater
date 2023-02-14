@@ -177,7 +177,6 @@ update_v6=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_i
 #########################################################
 case "$update_ipv4" in
 *"\"success\":false"*)
-    echo -e "DDNS Updater: $ipv4 $record_name_A DDNS failed for $record_identifier_A ($ipv4). Dumping results:\n$update_ipv4" | logger -s
     if [[ $slack_uri != "" ]]; then
         curl -L -X POST $slack_uri \
         --data-raw '{
@@ -191,6 +190,7 @@ case "$update_ipv4" in
           "content" : "'"$website_name"' DDNS Updater: Failed for '$record_name_A': '$record_identifier_A' ('$ipv4')."
         }' $discord_uri
     fi
+    echo -e "DDNS Updater: $ipv4 $record_name_A DDNS failed for $record_identifier_A ($ipv4). Dumping results:\n$update_ipv4" | logger -s
     update_ipv4_valid="1"
     ;;
 *)
@@ -217,7 +217,6 @@ esac
 #########################################################
 case "$update_ipv6" in
 *"\"success\":false"*)
-    echo -e "DDNS Updater: $ipv6 $record_name_AAAA DDNS failed for $record_identifier_AAAA ($ipv6). Dumping results:\n$update_ipv6" | logger -s
     if [[ $slack_uri != "" ]]; then
       curl -L -X POST $slack_uri \
       --data-raw '{
@@ -231,6 +230,7 @@ case "$update_ipv6" in
         "content" : "'"$website_name"' DDNS Updater: Failed for '$record_name_AAAA': '$record_identifier_AAAA' ('$ipv6')."
       }' $discord_uri
     fi
+    echo -e "DDNS Updater: $ipv6 $record_name_AAAA DDNS failed for $record_identifier_AAAA ($ipv6). Dumping results:\n$update_ipv6" | logger -s
     update_ipv6_valid="1"
     ;;
 *)
