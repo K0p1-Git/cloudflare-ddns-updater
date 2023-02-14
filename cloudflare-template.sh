@@ -1,123 +1,268 @@
 #!/bin/bash
-## change to "bin/sh" when necessary
+## When the system shell is required, replace the first line of the script with "#!/bin/sh"
 
-auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
-auth_method="token"                                 # Set to "global" for Global API Key or "token" for Scoped API Token
-auth_key=""                                         # Your API Token or Global API Key
-zone_identifier=""                                  # Can be found in the "Overview" tab of your domain
-record_name=""                                      # Which record you want to be synced
-ttl="3600"                                          # Set the DNS TTL (seconds)
-proxy="false"                                       # Set the proxy to true or false
-sitename=""                                         # Title of site "Example Site"
-slackchannel=""                                     # Slack Channel #example
-slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
-discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+auth_email=""						# Your account e-mail address; "Example@domain.com" (https://dash.cloudflare.com)
+auth_method="token"					# Your account authentication method; Set to "global" for Global API Key or "token" for Scoped API Token
+auth_key=""							# Your Global API Key or Scoped API Token; Located within the "API Tokens" section of your profile
+zone_identifier=""					# Your Zone Identifier ID; Located within the "Overview" section of your domain
+record_name_A=""					# The name of your A record; "www.example.com"
+record_name_AAAA=""					# The name of your AAAA record; "www.example.com"
+ttl="1"								# Set the DNS TTL (seconds); "1" for automatic or "3600" for default
+proxy="false"						# Set the Proxy Status to "true" or "false"; "true" for Proxied or "false" for DNS Only
+website_name=""						# The title of your website; "Example Website"
+slack_channel=""					# The name of your Slack channel; "#channel"
+slack_uri=""						# The URI of your Slack Webhook; "https://hooks.slack.com/services/xxxxx"
+discord_uri=""						# The URI of your Discord Webhook; "https://discordapp.com/api/webhooks/xxxxx"
 
-
-###########################################
-## Check if we have a public IP
-###########################################
-ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
-ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret=$?
-if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
-    # Attempt to get the ip from other websites.
-    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
+#####################################
+## Check for a public IPv4 address ##
+#####################################
+ipv4_regex='((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])'
+ipv4=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret_ipv4=$?
+if [[ ! $ret_ipv4 == 0 ]]; then # In the case that Cloudflare failed to return a public IPv4 address.
+    # Attempt to pull the public IPv4 address from another website.
+    ipv4=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
 else
-    # Extract just the ip from the ip line from cloudflare.
-    ip=$(echo $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
+    # Use regex to extract the public IPv4 address from the "ip=" line of the JSON data provided by Cloudflare.
+    ipv4=$(echo $ipv4 | sed -E "s/^ip=($ipv4_regex)$/\1/")
+    ipv4_valid="0"
 fi
 
-# Use regex to check for proper IPv4 format.
-if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
-    logger -s "DDNS Updater: Failed to find a valid IP."
+# Use regex to check whether the returned public IPv4 address is a valid IPv4 address.
+if [[ ! $ipv4 =~ ^$ipv4_regex$ ]]; then
+    logger -s "DDNS Updater: Failed to return a valid public IPv4 address."
+    ipv4_valid="1"
+fi
+
+#####################################
+## Check for a public IPv6 address ##
+#####################################
+ipv6_regex='(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
+ipv6=$(curl -s -6 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret_ipv6=$?
+if [[ ! $ret_ipv6 == 0 ]]; then # In the case that Cloudflare failed to return a public IPv6 address.
+    # Attempt to pull the public IPv6 address from another website.
+    ipv6=$(curl -s https://api64.ipify.org || curl -s https://ipv6.icanhazip.com)
+else
+    # Use regex to extract the public IPv6 address from the "ip=" line of the JSON provided by Cloudflare.
+    ipv6=$(echo $ipv6 | sed -E "s/^ip=($ipv6_regex)$/\1/")
+    ipv6_valid="0"
+fi
+
+# Use regex to check whether the returned public IPv6 address is a valid IPv6 address.
+if [[ ! $ipv6 =~ ^$ipv6_regex$ ]]; then
+    logger -s "DDNS Updater: Failed to return a valid public IPv6 address."
+    ipv6_valid="1"
+fi
+
+#############################################################
+## Check the returned public IPv4 address and IPv6 address ##
+#############################################################
+if [[ ! $ipv4_valid == 0 && ! $ipv6_valid == 0 ]]; then # In the case that the returned IPv4 address and IPv6 address are both invalid.
+    # Exit the script with exit code 2: Misuse of shell builtins.
     exit 2
 fi
 
-###########################################
-## Check and set the proper auth header
-###########################################
+###################################
+## Set the authentication header ##
+###################################
 if [[ "${auth_method}" == "global" ]]; then
-  auth_header="X-Auth-Key:"
+    auth_header="X-Auth-Key:"
 else
-  auth_header="Authorization: Bearer"
+    auth_header="Authorization: Bearer"
 fi
 
-###########################################
-## Seek for the A record
-###########################################
-
-logger "DDNS Updater: Check Initiated"
-record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name" \
+######################
+## Get the A record ##
+######################
+logger "DDNS Updater: Check initiated for A record."
+record_A=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name_A" \
                       -H "X-Auth-Email: $auth_email" \
                       -H "$auth_header $auth_key" \
                       -H "Content-Type: application/json")
 
-###########################################
-## Check if the domain has an A record
-###########################################
-if [[ $record == *"\"count\":0"* ]]; then
-  logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${ip} for ${record_name})"
-  exit 1
+####################################
+## Check for an existing A record ##
+####################################
+if [[ $record_A == *"\"count\":0"* ]]; then
+    logger -s "DDNS Updater: A record does not exist. Create one first? (${ipv4} for ${record_name_A})"
+    record_A_valid="1"
+else
+    record_A_valid="0"
 fi
 
-###########################################
-## Get existing IP
-###########################################
-old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
-# Compare if they're the same
-if [[ $ip == $old_ip ]]; then
-  logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
-  exit 0
+#########################
+## Get the AAAA record ##
+#########################
+logger "DDNS Updater: Check initiated for AAAA record."
+record_AAAA=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=AAAA&name=$record_name_AAAA" \
+                      -H "X-Auth-Email: $auth_email" \
+                      -H "$auth_header $auth_key" \
+                      -H "Content-Type: application/json")
+
+
+#######################################
+## Check for an existing AAAA record ##
+#######################################
+if [[ $record_AAAA == *"\"count\":0"* ]]; then
+    logger -s "DDNS Updater: AAAA record does not exist. Create one first? (${ipv6} for ${record_name_AAAA})"
+    record_AAAA_valid="1"
+else
+    record_AAAA_valid="0"
 fi
 
-###########################################
-## Set the record identifier from result
-###########################################
-record_identifier=$(echo "$record" | sed -E 's/.*"id":"(\w+)".*/\1/')
+#################################################
+## Check the returned A record and AAAA record ##
+#################################################
+if [[ ! $record_A_valid == 0 && ! $record_AAAA_valid == 0 ]]; then # In the case both the returned A record and AAAA record do not exist.
+    # Exit the script with exit code 1: General errors.
+    exit 1
+fi
 
-###########################################
-## Change the IP@Cloudflare using the API
-###########################################
-update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier" \
+#####################################################################
+## Check the returned A record for an existing public IPv4 address ##
+#####################################################################
+old_ipv4=$(echo "$record_A" | sed -E 's/.*"content":"('$ipv4_regex')".*/\1/')
+if [[ $ipv4 == $old_ipv4 ]]; then # Use regex to compare whether the returned public IPv4 address and existing public IPv4 address are the same.
+    logger "DDNS Updater: The IPv4 address ($ipv4) for ${record_name_A} has not changed."
+    old_ipv4_valid="1"
+else
+    old_ipv4_valid="0"
+fi
+
+########################################################################
+## Check the returned AAAA record for an existing public IPv6 address ##
+########################################################################
+old_ipv6=$(echo "$record_AAAA" | sed -E 's/.*"content":"('$ipv6_regex')".*/\1/')
+if [[ $ipv6 == $old_ipv6 ]]; then # Use regex to compare whether the returned public IPv6 address and existing public IPv6 address are the same.
+    logger "DDNS Updater: The IPv6 address ($ipv6) for ${record_name_AAAA} has not changed."
+    old_ipv6_valid="1"
+else
+    old_ipv6_valid="0"
+fi
+
+####################################################################
+## Check the existing public IPv4 address and public IPv6 address ##
+####################################################################
+if [[ ! $record_ipv4_valid == 0 && ! $old_ipv6_valid == 0 ]]; then # In the case both the existing public IPv4 address and public IPv6 address have not changed.
+    # Exit the script with exit code 0: Success.
+    exit 0
+fi
+
+##################################################
+## Set the A record and AAAA record identifiers ##
+##################################################
+record_identifier_A=$(echo "$record_A" | sed -E 's/.*"id":"(\w+)".*/\1/')
+record_identifier_AAAA=$(echo "$record_AAAA" | sed -E 's/.*"id":"(\w+)".*/\1/')
+
+####################################
+## Update the public IPv4 address ##
+####################################
+update_ipv4=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier_A" \
                      -H "X-Auth-Email: $auth_email" \
                      -H "$auth_header $auth_key" \
                      -H "Content-Type: application/json" \
-                     --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
+                     --data "{\"type\":\"A\",\"name\":\"$record_name_A\",\"content\":\"$ipv4\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
 
-###########################################
-## Report the status
-###########################################
-case "$update" in
+####################################
+## Update the public IPv6 address ##
+####################################
+update_v6=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier_AAAA" \
+                     -H "X-Auth-Email: $auth_email" \
+                     -H "$auth_header $auth_key" \
+                     -H "Content-Type: application/json" \
+                     --data "{\"type\":\"AAAA\",\"name\":\"$record_name_AAAA\",\"content\":\"$ipv6\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
+
+#########################################################
+## Report the update status of the public IPv4 address ##
+#########################################################
+case "$update_ipv4" in
 *"\"success\":false"*)
-  echo -e "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s 
-  if [[ $slackuri != "" ]]; then
-    curl -L -X POST $slackuri \
-    --data-raw '{
-      "channel": "'$slackchannel'",
-      "text" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
-    }'
-  fi
-  if [[ $discorduri != "" ]]; then
-    curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
-    --data-raw '{
-      "content" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
-    }' $discorduri
-  fi
-  exit 1;;
+    echo -e "DDNS Updater: $ipv4 $record_name_A DDNS failed for $record_identifier_A ($ipv4). Dumping results:\n$update_ipv4" | logger -s
+    if [[ $slack_uri != "" ]]; then
+        curl -L -X POST $slack_uri \
+        --data-raw '{
+          "channel": "'$slack_channel'",
+          "text" : "'"$website_name"' DDNS Updater: Failed for '$record_name_A': '$record_identifier_A' ('$ipv4')."
+        }'
+    fi
+    if [[ $discord_uri != "" ]]; then
+        curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+        --data-raw '{
+          "content" : "'"$website_name"' DDNS Updater: Failed for '$record_name_A': '$record_identifier_A' ('$ipv4')."
+        }' $discord_uri
+    fi
+    update_ipv4_valid="1"
+    ;;
 *)
-  logger "DDNS Updater: $ip $record_name DDNS updated."
-  if [[ $slackuri != "" ]]; then
-    curl -L -X POST $slackuri \
-    --data-raw '{
-      "channel": "'$slackchannel'",
-      "text" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
-    }'
-  fi
-  if [[ $discorduri != "" ]]; then
-    curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
-    --data-raw '{
-      "content" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
-    }' $discorduri
-  fi
-  exit 0;;
+    if [[ $slack_uri != "" ]]; then
+        curl -L -X POST $slack_uri \
+        --data-raw '{
+          "channel": "'$slack_channel'",
+          "text" : "'"$website_name"' Updated: '$record_name_A''"'"'s'""' new IP Address is '$ipv4'"
+        }'
+    fi
+    if [[ $discord_uri != "" ]]; then
+      curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+      --data-raw '{
+        "content" : "'"$website_name"' Updated: '$record_name_A''"'"'s'""' new IP Address is '$ipv4'"
+      }' $discord_uri
+    fi
+    logger "DDNS Updater: $ipv4 $record_name_A DDNS updated successfully."
+    update_ipv4_valid="0"
+    ;;
 esac
+
+#########################################################
+## Report the update status of the public IPv6 address ##
+#########################################################
+case "$update_ipv6" in
+*"\"success\":false"*)
+    echo -e "DDNS Updater: $ipv6 $record_name_AAAA DDNS failed for $record_identifier_AAAA ($ipv6). Dumping results:\n$update_ipv6" | logger -s
+    if [[ $slack_uri != "" ]]; then
+      curl -L -X POST $slack_uri \
+      --data-raw '{
+        "channel": "'$slack_channel'",
+        "text" : "'"$website_name"' DDNS Updater: Failed for '$record_name_AAAA': '$record_identifier_AAAA' ('$ipv6')."
+      }'
+    fi
+    if [[ $discord_uri != "" ]]; then
+      curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+      --data-raw '{
+        "content" : "'"$website_name"' DDNS Updater: Failed for '$record_name_AAAA': '$record_identifier_AAAA' ('$ipv6')."
+      }' $discord_uri
+    fi
+    update_ipv6_valid="1"
+    ;;
+*)
+    if [[ $slack_uri != "" ]]; then
+      curl -L -X POST $slack_uri \
+      --data-raw '{
+        "channel": "'$slack_channel'",
+        "text" : "'"$website_name"' Updated: '$record_name_AAAA''"'"'s'""' new IPv6 Address is '$ipv6'"
+      }'
+    fi
+    if [[ $discord_uri != "" ]]; then
+      curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+      --data-raw '{
+        "content" : "'"$website_name"' Updated: '$record_name_AAAA''"'"'s'""' new IPv6 Address is '$ipv6'"
+      }' $discord_uri
+    fi
+    logger "DDNS Updater: $ipv6 $record_name_AAAA DDNS updated successfully."
+    update_ipv6_valid="0"
+    ;;
+esac
+
+################################################################################
+## Check the update status of the public IPv4 address and public IPv6 address ##
+################################################################################
+if [[ ! $update_ipv4_valid == 0 || ! $update_ipv6_valid == 0 ]]; then # In the case the update status of either the public IPv4 address or public IPv6 address are invalid.
+    # Exit the script with exit code 1: General errors.
+    exit 1
+else
+    # Exit the script with exit code 0: Success.
+    exit 0
+fi
+
+# End of the script
+# Exit the script with exit code 0: Success.
+exit 0
