@@ -3,11 +3,11 @@
 
 auth_email=""						# Your account e-mail address; "Example@domain.com" (https://dash.cloudflare.com)
 auth_method="token"					# Your account authentication method; Set to "global" for Global API Key or "token" for Scoped API Token
-auth_key=""							# Your Global API Key or Scoped API Token; Located within the "API Tokens" section of your profile
+auth_key=""						# Your Global API Key or Scoped API Token; Located within the "API Tokens" section of your profile
 zone_identifier=""					# Your Zone Identifier ID; Located within the "Overview" section of your domain
 record_name_A=""					# The name of your A record; "www.example.com"
 record_name_AAAA=""					# The name of your AAAA record; "www.example.com"
-ttl="1"								# Set the DNS TTL (seconds); "1" for automatic or "3600" for default
+ttl="1"							# Set the DNS TTL (seconds); "1" for automatic or "3600" for default
 proxy="false"						# Set the Proxy Status to "true" or "false"; "true" for Proxied or "false" for DNS Only
 website_name=""						# The title of your website; "Example Website"
 slack_channel=""					# The name of your Slack channel; "#channel"
