@@ -73,7 +73,7 @@ fi
 ###########################################
 ## Set the record identifier from result
 ###########################################
-record_identifier=$(echo "$record" | sed -E 's/.*"id":"(\w+)".*/\1/')
+record_identifier=$(echo "$record" | sed -E 's/.*"id":"([A-Za-z0-9_]+)".*/\1/')
 
 ###########################################
 ## Change the IP@Cloudflare using the API
