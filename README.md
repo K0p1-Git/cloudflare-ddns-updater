@@ -28,9 +28,9 @@ This script is used with crontab. Specify the frequency of execution through cro
 ```
 
 ## Tested Environments:
-macOS Mojave version 10.14.6 (x86_64)
-AlmaLinux 9.3 (Linux kernel: 5.14.0 | x86_64)
-Debian Bullseye 11 (Linux kernel: 6.1.28 | aarch64)
+macOS Mojave version 10.14.6 (x86_64) <br />
+AlmaLinux 9.3 (Linux kernel: 5.14.0 | x86_64) <br />
+Debian Bullseye 11 (Linux kernel: 6.1.28 | aarch64) <br />
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
