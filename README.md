@@ -27,7 +27,7 @@ This script is used with crontab. Specify the frequency of execution through cro
 # * * * * * /bin/bash {Location of the script}
 ```
 
-##Tested Environments:
+## Tested Environments:
 macOS Mojave version 10.14.6 (x86_64)
 AlmaLinux 9.3 (Linux kernel: 5.14.0 | x86_64)
 Debian Bullseye 11 (Linux kernel: 6.1.28 | aarch64)
