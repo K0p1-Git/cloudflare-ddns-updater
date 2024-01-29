@@ -1,18 +1,19 @@
 #!/bin/bash
 ## change to "bin/sh" when necessary
 
+# display_help function: Displays the usage instructions for the script.
 display_help(){
   logger "Usage: $0 [local|file|pass]"
   logger "  local - Load variables from this script"
   logger "  file  - Load variables from a file"
   logger "  pass  - Load variables from pass"
-
 }
 
-
+# load_variables function: Loads the required variables based on the input option.
 load_variables(){
   case "$1" in
     "local")
+      # Load variables from this script
       auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
       auth_method=""                                      # Set to "global" for Global API Key or "token" for Scoped API Token
       auth_key=""                                         # Your API Token or Global API Key
@@ -49,7 +50,7 @@ load_variables(){
   esac
 }
 
-
+# validate_variables function: Validates the required variables.
 validate_variables(){
   # Validate required variables
   if [[ -z $auth_email || -z $auth_key || -z $zone_identifier || -z $record_name ]]; then
@@ -58,6 +59,7 @@ validate_variables(){
   fi
 }
 
+# check_ipv4_is_available function: Checks if IPv4 is available and retrieves the IP address.
 check_ipv4_is_available(){
   ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
 
@@ -77,6 +79,7 @@ check_ipv4_is_available(){
   fi
 }
 
+# set_auth_headers function: Sets the authentication headers based on the authentication method.
 set_auth_headers(){
   if [[ "${auth_method}" == "global" ]]; then
     auth_header="X-Auth-Key:"
@@ -85,7 +88,7 @@ set_auth_headers(){
   fi
 }
 
-
+# check_if_a_record_exists function: Checks if the DNS record exists in Cloudflare.
 check_if_a_record_exists(){
   logger "DDNS Updater: Check Initiated"
   record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name" \
@@ -99,6 +102,7 @@ check_if_a_record_exists(){
   fi
 }
 
+# get_current_ip_from_cloudflare function: Retrieves the current IP address from Cloudflare.
 get_current_ip_from_cloudflare(){
   old_ip=$(logger "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
   # Compare if they're the same
@@ -108,9 +112,9 @@ get_current_ip_from_cloudflare(){
   fi
 }
 
+# update_ip_on_cloudflare function: Updates the IP address on Cloudflare.
 update_ip_on_cloudflare(){
   record_identifier=$(logger "$record" | sed -E 's/.*"id":"([A-Za-z0-9_]+)".*/\1/')
-
 
   update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier" \
                       -H "X-Auth-Email: $auth_email" \
@@ -119,6 +123,7 @@ update_ip_on_cloudflare(){
                       --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
 }
 
+# send_webhooks function: Sends webhooks to Slack and Discord.
 send_webhooks(){
   case "$update" in
   *"\"success\":false"*)
@@ -156,6 +161,7 @@ send_webhooks(){
   esac
 }
 
+# main function: Entry point of the script.
 main(){
   validate_variables
   check_ipv4_is_available
