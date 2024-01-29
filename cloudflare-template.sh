@@ -28,7 +28,7 @@ load_variables(){
       ;;
     "file")
       # Load variables from file
-      CONFIG_FILE="$HOME/.cloudflare/config.ini"
+      CONFIG_FILE="$HOME/.cloudflare/config4.ini"
 
       # Check if the configuration file exists
       if [ -f "$CONFIG_FILE" ]; then
@@ -63,19 +63,17 @@ validate_variables(){
 check_ipv4_is_available(){
   ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
 
-  ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret=$?
-  if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
-      # Attempt to get the ip from other websites.
-      ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
-  else
-      # Extract just the ip from the ip line from cloudflare.
-      ip=$(logger $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
-  fi
+  ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip=' | cut -d '=' -f 2)
 
-  # Use regex to check for proper IPv4 format.
-  if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
-      logger -s "DDNS Updater: Failed to find a valid IP."
-      exit 2
+  if [[ -z $ip ]]; then
+    # Cloudflare did not return an IP, try other sources.
+    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
+  else
+    # Use regex to check for proper IPv4 format.
+    if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
+      logger -s "DDNS Updater: Failed to find a valid IP from Cloudflare."
+      exit 1
+    fi
   fi
 }
 
@@ -174,19 +172,12 @@ main(){
 
 # switch for environment variables loading
 case "$1" in
-  "local")
-    load_variables "local"
-    main
-    ;;
-  "file")
-    load_variables "file"
-    main
-    ;;
-  "pass")
-    load_variables "pass"
+  "local"|"file"|"pass")
+    load_variables "$1"
     main
     ;;
   *)
     display_help
+    exit 1
     ;;
 esac
