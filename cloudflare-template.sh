@@ -1,23 +1,59 @@
 #!/bin/bash
 ## change to "bin/sh" when necessary
 
-auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
-auth_method="token"                                 # Set to "global" for Global API Key or "token" for Scoped API Token
-auth_key=""                                         # Your API Token or Global API Key
-zone_identifier=""                                  # Can be found in the "Overview" tab of your domain
-record_name=""                                      # Which record you want to be synced
-ttl="3600"                                          # Set the DNS TTL (seconds)
-proxy="false"                                       # Set the proxy to true or false
-sitename=""                                         # Title of site "Example Site"
-slackchannel=""                                     # Slack Channel #example
-slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
-discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+display_help(){
+  logger "Usage: $0 [local|file|pass]"
+  logger "  local - Load variables from this script"
+  logger "  file  - Load variables from a file"
+  logger "  pass  - Load variables from pass"
+
+}
+
+
+load_variables(){
+  case "$1" in
+    "local")
+      auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
+      auth_method=""                                      # Set to "global" for Global API Key or "token" for Scoped API Token
+      auth_key=""                                         # Your API Token or Global API Key
+      zone_identifier=""                                  # Can be found in the "Overview" tab of your domain
+      record_name=""                                      # Which record you want to be synced
+      ttl="3600"                                          # Set the DNS TTL (seconds)
+      proxy="false"                                       # Set the proxy to true or false
+      sitename=""                                         # Title of site "Example Site"
+      slackchannel=""                                     # Slack Channel #example
+      slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
+      discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+      ;;
+    "file")
+      # Load variables from file
+      CONFIG_FILE="$HOME/.cloudflare/config.ini"
+
+      # Check if the configuration file exists
+      if [ -f "$CONFIG_FILE" ]; then
+          # Load configuration from the file
+          source "$CONFIG_FILE"
+      else
+          logger "Error: Configuration file '$CONFIG_FILE' not found."
+          exit 1
+      fi
+      ;;
+    "pass")
+      # Load variables from pass
+      source <(pass credentials/cloudflare)
+      ;;
+    *)
+      logger "Invalid load_variables option"
+      exit 1
+      ;;
+  esac
+}
 
 
 validate_variables(){
   # Validate required variables
   if [[ -z $auth_email || -z $auth_key || -z $zone_identifier || -z $record_name ]]; then
-    echo "Missing required variables. Please provide values for 'auth_email', 'auth_key', 'zone_identifier', and 'record_name'."
+    logger "Missing required variables. Please provide values for 'auth_email', 'auth_key', 'zone_identifier', and 'record_name'."
     exit 1
   fi
 }
@@ -31,7 +67,7 @@ check_ipv4_is_available(){
       ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
   else
       # Extract just the ip from the ip line from cloudflare.
-      ip=$(echo $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
+      ip=$(logger $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
   fi
 
   # Use regex to check for proper IPv4 format.
@@ -64,7 +100,7 @@ check_if_a_record_exists(){
 }
 
 get_current_ip_from_cloudflare(){
-  old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
+  old_ip=$(logger "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
   # Compare if they're the same
   if [[ $ip == $old_ip ]]; then
     logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
@@ -73,7 +109,7 @@ get_current_ip_from_cloudflare(){
 }
 
 update_ip_on_cloudflare(){
-  record_identifier=$(echo "$record" | sed -E 's/.*"id":"([A-Za-z0-9_]+)".*/\1/')
+  record_identifier=$(logger "$record" | sed -E 's/.*"id":"([A-Za-z0-9_]+)".*/\1/')
 
 
   update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier" \
@@ -86,7 +122,7 @@ update_ip_on_cloudflare(){
 send_webhooks(){
   case "$update" in
   *"\"success\":false"*)
-    echo -e "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s 
+    logger -e "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s 
     if [[ $slackuri != "" ]]; then
       curl -L -X POST $slackuri \
       --data-raw '{
@@ -129,3 +165,22 @@ main(){
   update_ip_on_cloudflare
   send_webhooks
 }
+
+# switch for environment variables loading
+case "$1" in
+  "local")
+    load_variables "local"
+    main
+    ;;
+  "file")
+    load_variables "file"
+    main
+    ;;
+  "pass")
+    load_variables "pass"
+    main
+    ;;
+  *)
+    display_help
+    ;;
+esac
