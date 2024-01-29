@@ -107,6 +107,8 @@ You selected this USER-ID:
 Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit? O
 ```
 
+**Note**: If you set a passphrase this will asks you that passphrase time to time, you want to avoid that leave it empty.
+
 List secret keys:
 
 ```bash
