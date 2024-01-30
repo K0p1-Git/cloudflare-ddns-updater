@@ -66,63 +66,7 @@ cp config.ini ~/.cloudflare/config.ini
 If you want to use [Pass](https://www.passwordstore.org/) you can execute the following commands:
 
 ```bash
-gpg2 --full-generate-key
-```
-
-Fll the prompts:
-```text
-Please select what kind of key you want:
-
-   (1) RSA and RSA (default)
-   (2) DSA and Elgamal
-   (3) DSA (sign only)
-   (4) RSA (sign only)
-
-Your selection? 1
-
-RSA keys may be between 1024 and 4096 bits long.
-What keysize do you want? (2048) 4096
-Requested keysize is 4096 bits
-
-Please specify how long the key should be valid.
-
-        0 = key does not expire
-      <n>  = key expires in n days
-      <n>w = key expires in n weeks
-      <n>m = key expires in n months
-      <n>y = key expires in n years
-
-Key is valid for? (0) 2y
-Key expires at Sat 18 Mar 2023 15:03:38 CET
-Is this correct? (y/N) y
-
-GnuPG needs to construct a user ID to identify your key.
-
-Real name: John Doe
-Email address: john.doe@example.com
-Comment: 
-You selected this USER-ID:
-    "John Doe <john.doe@example.com>"
-
-Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit? O
-```
-
-**Note**: If you set a passphrase this will asks you that passphrase time to time, you want to avoid that leave it empty.
-
-List secret keys:
-
-```bash
-gpg2 --list-secret-keys --keyid-format LONG
-
-sec   4096R/AAAA2222CCCC4444 2021-03-18 [expires: 2023-03-18] uid         John Doe <jdoe@example.com>
-```
-
-Init pass:
-
-```bash
-pass init 'AAAA2222CCCC4444'
-
-mkdir: created directory ‘/home/myhome/.password-store’ Password store initialized for AAAA2222CCCC4444.
+gpg --batch --passphrase '' --quick-gen-key USER_ID default default
 ```
 
 Execute:
