@@ -69,6 +69,19 @@ If you want to use [Pass](https://www.passwordstore.org/) you can execute the fo
 gpg --batch --passphrase '' --quick-gen-key USER_ID default default
 ```
 
+Get key:
+
+```bash
+gpg2 --list-secret-keys --keyid-format LONG
+
+sec   4096R/AAAA2222CCCC4444 2021-03-18 [expires: 2023-03-18] uid         John Doe <jdoe@example.com>
+```
+
+Init pass:
+```bash
+pass init 'AAAA2222CCCC4444'
+```
+
 Execute:
 
 ```bash
