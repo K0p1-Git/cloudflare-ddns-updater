@@ -45,6 +45,12 @@ Persistent=true
 WantedBy=timers.target
 ```
 
+### Enable and start the service
+`systemctl daemon-reload`
+`systemctl enable cloudflare-ddns-updater.service`
+`systemctl enable cloudflare-ddns-updater.timer`
+`systemctl start cloudflare-ddns-updater.timer`
+
 ## Tested Environments:
 **Original:** <br />
 macOS Mojave version 10.14.6 (x86_64) <br />
