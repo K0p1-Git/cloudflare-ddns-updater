@@ -2,7 +2,7 @@
 
 This script is used to update Dynamic DNS (DDNS) service based on Cloudflare! Access your home network remotely via a custom domain name without a static IP! Written in pure BASH.
 
-This version of this script allows you to update multiple domains/sub domains with the same public IP for IPv4, IPv6 version remains per single domain.
+This version of this script allows you to update **multiple domains/sub domains with the same public IP for IPv4**, IPv6 version remains per single domain.
 
 ## Clone
 
