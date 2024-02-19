@@ -13,7 +13,10 @@ git clone https://github.com/joeltgray/cloudflare-ddns-updater.git
 ## Usage
 This version of the script is used with systemd. Update the paths in config below to match your setup.
 If you need to know how to use systemd services check out my blog here: 
-        [Running A Service on Systemd](https://graycode.ie/blog/run-anything-as-a-service-on-linux/)
+[Running A Service on Systemd](https://graycode.ie/blog/run-anything-as-a-service-on-linux/)
+
+### Make the Script Executable
+`chmod u+x /path/to/your/cloudflare-ddns-updater/cloudflare-dns-updater.sh`
 
 ### Make the service file
 `nano /etc/systemd/system/cloudflare-ddns-updater.service`
@@ -22,7 +25,7 @@ If you need to know how to use systemd services check out my blog here:
 Description=Service to update Cloudflare servers with this servers public IP
 
 [Service]
-ExecStart=/bin/bash  /path/to/your/cloudflare-ddns-updater/cloudflare-updater.sh
+ExecStart=/bin/bash  /path/to/your/cloudflare-ddns-updater/cloudflare-dns-updater.sh
 Restart=
 EnvironmentFile=/etc/environment
 
