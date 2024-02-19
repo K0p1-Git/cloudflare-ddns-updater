@@ -46,14 +46,15 @@ WantedBy=timers.target
 ```
 
 ## Tested Environments:
-Original:
+**Original:** <br />
 macOS Mojave version 10.14.6 (x86_64) <br />
 AlmaLinux 9.3 (Linux kernel: 5.14.0 | x86_64) <br />
 Debian Bullseye 11 (Linux kernel: 6.1.28 | aarch64) <br />
 
-This version:
+**This version:** <br />
 Debian 11 (Linux kernel: 6.1.0-0.deb11.13-amd64 | x86_64) <br />
 Arch rolling (Linux kernel: 6.7.4-arch1-1 | x86_64) <br />
+Raspbian 11 (Linux kernel: 6.1.21-v8+ | aarch64) <br />
 
 
 ## Contributing
