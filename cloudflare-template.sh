@@ -86,7 +86,7 @@ for record_name in "${record_names[@]}"; do
                           -H "Content-Type: application/json" \
                           --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
   else
-      logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
+      echo "DDNS Updater: IP ($ip) for ${record_name} has not changed." | tee >(logger)
 	fi
 	
 done
