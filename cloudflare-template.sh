@@ -102,7 +102,7 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/${CLOUDFLA
                      -H "X-Auth-Email: ${CLOUDFLARE_AUTH_EMAIL}" \
                      -H "$auth_header ${CLOUDFLARE_AUTH_KEY}" \
                      -H "Content-Type: application/json" \
-                     --data "{\"type\":\"A\",\"name\":\"${CLOUDFLARE_RECORD_NAME}\",\"content\":\"$ip\",\"${CLOUDFLARE_TTL}\":\"${CLOUDFLARE_TTL}\",\"proxied\":${CLOUDFLARE_PROXY}}")
+                     --data "{\"type\":\"A\",\"name\":\"${CLOUDFLARE_RECORD_NAME}\",\"content\":\"$ip\",\"ttl\":\"${CLOUDFLARE_TTL}\",\"proxied\":${CLOUDFLARE_PROXY}}")
 
 ###########################################
 ## Report the status
