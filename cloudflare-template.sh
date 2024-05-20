@@ -12,7 +12,7 @@ if [ ! -d "${API_KEY_DIR}" ]; then
 
     # Create a secrets.env file template.
     touch ${SECRETS_FILE}
-    echo -en "#/bin/bash\n\n# These are secrets used by the `cloudflare-ddns-updater` script.\n\n" > ${SECRETS_FILE}
+    echo -en "#/bin/bash\n\n# These are secrets used by the 'cloudflare-ddns-updater' script.\n\n" > ${SECRETS_FILE}
 
     echo "CLOUDFLARE_AUTH_EMAIL=\"\"                                       # The email used to login 'https://dash.cloudflare.com'" >> ${SECRETS_FILE}
     echo "CLOUDFLARE_AUTH_METHOD=\"token\"                                 # Set to "global" for Global API Key or "token" for Scoped API Token" >> ${SECRETS_FILE}
