@@ -39,11 +39,13 @@ log_header_name="DDNS Updater_v6"
 # @slackchannel         - Slack Channel #example
 # @slackuri             - URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 # @discorduri           - URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+# @msteams_webhook_uri  - URI for Microsoft Teams WebHook "https://outlook.office.com/webhook/xxxxx"
 # -------------------------------------------------- #
 sitename=""
 slackchannel=""
 slackuri=""
 discorduri=""
+msteams_webhook_uri=""
 
 
 
@@ -180,6 +182,12 @@ case "$update" in
             --data-raw "{
                 \"content\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
             }" $discorduri
+    fi
+    if [[ $msteams_webhook_uri != "" ]]; then
+        curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+            --data-raw "{
+                \"text\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
+            }" $msteams_webhook_uri
     fi
     exit 0
     ;;
