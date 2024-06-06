@@ -18,7 +18,7 @@ zone_identifier=""
 # @proxy                - Set the proxy to true or false
 # -------------------------------------------------- #
 record_name=""
-ttl="3600"
+ttl=3600
 proxy="false"
 
 ###############  SCRIPT CONFIGURATION  ###############
@@ -143,7 +143,7 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
     -H "X-Auth-Email: $auth_email" \
     -H "$auth_header $auth_key" \
     -H "Content-Type: application/json" \
-    --data "{\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":$proxy}")
+    --data "{\"content\":\"$ip\",\"ttl\":$ttl,\"proxied\":$proxy}")
 
 ################################################
 ## Report the status
