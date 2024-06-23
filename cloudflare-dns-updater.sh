@@ -1,12 +1,15 @@
 #!/bin/bash
 ## change to "bin/sh" when necessary
 
-auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
-auth_method="token"                                 # Set to "global" for Global API Key or "token" for Scoped API Token
-auth_key=""                                         # Your API Token or Global API Key
-zone_identifier=""                                  # Can be found in the "Overview" tab of your domain
-record_names=()                                     # Which records you want to be synced Format: ("domain.com" "mydomain.net")
-ttl="3600"                                          # Set the DNS TTL (seconds)
+auth_email=""                    	            # The email used to login 'https://dash.cloudflare.com'
+auth_method=""                                      # Set to "global" for Global API Key or "token" for Scoped API Token
+auth_key=""    					    # Your API Token or Global API Key
+declare -A zone_identifiers=(                       # Associative array mapping domains to zone identifiers
+    ["example.com"]="myKeyHere"
+    ["example2.com"]="myOtherKeyHere"
+) 						    # Can be found in the "Overview" tab of your domain
+record_names=("example.com" "submain.example2.com") # Which records you want to be synced Format: ("domain.com" "mydomain.net")
+ttl=60                                              # Set the DNS TTL (seconds)
 proxy="false"                                       # Set the proxy to true or false
 sitename=""                                         # Title of site "Example Site"
 slackchannel=""                                     # Slack Channel #example
@@ -49,11 +52,21 @@ fi
 echo "DDNS Updater: Check Initiated" | tee >(logger)
 for record_name in "${record_names[@]}"; do
   echo "Updating IP for $record_name" | tee >(logger)
-	record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name" \
-        	              -H "X-Auth-Email: $auth_email" \
-                	      -H "$auth_header $auth_key" \
-                        -H "Content-Type: application/json")
+  if [[ $record_name =~ ([^.]+\.[^.]+)$ ]]; then
+        domain="${BASH_REMATCH[1]}"
+    else
+        echo "Could not determine domain for $record_name" | tee >(logger)
+        continue
+    fi                  # Extract domain part from record name
+  echo "domain extracted $domain"
+  zone_identifier="${zone_identifiers[$domain]}" # Fetch the zone identifier based on domain
+  url="https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name"
 
+  echo "get url extracted is $url" | tee >(logger)
+  record=$(curl -s -X GET $url \
+                            -H "X-Auth-Email: $auth_email" \
+                            -H "$auth_header $auth_key" \
+                            -H "Content-Type: application/json")
   echo "Response for $record_name: $record" | tee >(logger)
 
 	###########################################
@@ -84,8 +97,9 @@ for record_name in "${record_names[@]}"; do
                           -H "X-Auth-Email: $auth_email" \
                           -H "$auth_header $auth_key" \
                           -H "Content-Type: application/json" \
-                          --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":\"$ttl\",\"proxied\":${proxy}}")
-  else
+                          --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":$ttl,\"proxied\":${proxy}}")
+	echo "Response to update for $record_name: $update" | tee >(logger)  
+else
       echo "DDNS Updater: IP ($ip) for ${record_name} has not changed." | tee >(logger)
 	fi
 	
