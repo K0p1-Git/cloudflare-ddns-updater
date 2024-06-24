@@ -39,11 +39,15 @@ log_header_name="DDNS Updater_v6"
 # @slackchannel         - Slack Channel #example
 # @slackuri             - URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 # @discorduri           - URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+# @ntfyuri              - URI for ntfy server. Default is ntfy.sh
+# @ntfytopic            - Topic for Ntfy.sh "https://ntfy.sh/xxxxx"
 # -------------------------------------------------- #
 sitename=""
 slackchannel=""
 slackuri=""
 discorduri=""
+ntfyuri="ntfy.sh"
+ntfytopic=""                                       
 
 
 
@@ -164,6 +168,14 @@ case "$update" in
                 \"content\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
             }" $discorduri
     fi
+    if [[ $ntfytopic != "" ]]; then
+      curl \
+        -H "Title: $sitename DDNS Update Failed" \
+        -H "Priority: urgent" \
+        -H "Tags: warning" \
+        -d "$record_name: $record_identifier ($ip)." \
+        $ntfyuri/$ntfytopic
+    fi
     exit 1
     ;;
 *)
@@ -180,6 +192,12 @@ case "$update" in
             --data-raw "{
                 \"content\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
             }" $discorduri
+    fi
+    if [[ $ntfytopic != "" ]]; then
+      curl \
+        -H "Title: $sitename Updated" \
+        -d $record_name"'s new IP Address is $ip" \
+        $ntfyuri/$ntfytopic
     fi
     exit 0
     ;;
