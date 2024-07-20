@@ -1,17 +1,17 @@
 #!/bin/bash
 ## change to "bin/sh" when necessary
 
-auth_email=""                                       # The email used to login 'https://dash.cloudflare.com'
-auth_method="token"                                 # Set to "global" for Global API Key or "token" for Scoped API Token
-auth_key=""                                         # Your API Token or Global API Key
-zone_identifier=""                                  # Can be found in the "Overview" tab of your domain
-record_name=""                                      # Which record you want to be synced
-ttl=3600                                            # Set the DNS TTL (seconds)
-proxy="false"                                       # Set the proxy to true or false
+auth_email=""                                       # อีเมลที่ใช้ล็อกอินเข้าสู่ Cloudflare
+auth_method="token"                                 # วิธีการให้สิทธิ์การเข้าถึง API (global หรือ token)
+auth_key=""                                         # API Token หรือ Global API Key ของคุณ
+zone_identifier=""                                  # รหัสของโซน DNS ที่ต้องการจัดการ (สามารถหาได้ในแท็บ "Overview" ของโดเมนของคุณ)
+record_name=""                                      # ชื่อระเบียน DNS ที่ต้องการอัพเดต (เช่น example.com)
+ttl=3600                                            # ค่า TTL สำหรับระเบียน DNS (วินาที)
+proxy="false"                                       # ตั้งค่าเป็น "true" หรือ "false" เพื่อให้ใช้ Cloudflare Proxy หรือไม่
 sitename=""                                         # Title of site "Example Site"
 slackchannel=""                                     # Slack Channel #example
-slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
-discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+slackuri=""                                         # URI สำหรับ Slack Webhook (ถ้าต้องการแจ้งเตือนผ่าน Slack)
+discorduri=""                                       # URI สำหรับ Discord Webhook (ถ้าต้องการแจ้งเตือนผ่าน Discord)
 
 
 ###########################################
