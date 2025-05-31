@@ -17,20 +17,29 @@ discorduri=""                                       # URI for Discord WebHook "h
 ###########################################
 ## Check if we have a public IP
 ###########################################
-ipv4_regex='([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])'
-ip=$(curl -s -4 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip'); ret=$?
-if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
-    # Attempt to get the ip from other websites.
-    ip=$(curl -s https://api.ipify.org || curl -s https://ipv4.icanhazip.com)
-else
-    # Extract just the ip from the ip line from cloudflare.
-    ip=$(echo $ip | sed -E "s/^ip=($ipv4_regex)$/\1/")
-fi
+REGEX_IPV4="^(0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))\.){3}0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))$"
+IP_SERVICES=(
+  "https://api.ipify.org"
+  "https://ipv4.icanhazip.com"
+  "https://ipinfo.io/ip"
+)
 
-# Use regex to check for proper IPv4 format.
-if [[ ! $ip =~ ^$ipv4_regex$ ]]; then
-    logger -s "DDNS Updater: Failed to find a valid IP."
-    exit 2
+# Try all the ip services for a valid IPv4 address
+for service in ${IP_SERVICES[@]}; do
+  RAW_IP=$(curl -s $service)
+  if [[ $RAW_IP =~ $REGEX_IPV4 ]]; then
+    CURRENT_IP=$BASH_REMATCH
+    logger -s "DDNS Updater: Fetched IP $CURRENT_IP"
+    break
+  else
+    logger -s "DDNS Updater: IP service $service failed."
+  fi
+done
+
+# Exit if IP fetching failed
+if [[ -z "$CURRENT_IP" ]]; then
+  logger -s "DDNS Updater: Failed to find a valid IP."
+  exit 2
 fi
 
 ###########################################
