@@ -65,7 +65,7 @@ record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identi
 ## Check if the domain has an A record
 ###########################################
 if [[ $record == *"\"count\":0"* ]]; then
-  logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${ip} for ${record_name})"
+  logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${CURRENT_IP} for ${record_name})"
   exit 1
 fi
 
@@ -74,8 +74,8 @@ fi
 ###########################################
 old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
 # Compare if they're the same
-if [[ $ip == $old_ip ]]; then
-  logger "DDNS Updater: IP ($ip) for ${record_name} has not changed."
+if [[ $CURRENT_IP == $old_ip ]]; then
+  logger "DDNS Updater: IP ($CURRENT_IP) for ${record_name} has not changed."
   exit 0
 fi
 
@@ -91,41 +91,41 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
                      -H "X-Auth-Email: $auth_email" \
                      -H "$auth_header $auth_key" \
                      -H "Content-Type: application/json" \
-                     --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$ip\",\"ttl\":$ttl,\"proxied\":${proxy}}")
+                     --data "{\"type\":\"A\",\"name\":\"$record_name\",\"content\":\"$CURRENT_IP\",\"ttl\":$ttl,\"proxied\":${proxy}}")
 
 ###########################################
 ## Report the status
 ###########################################
 case "$update" in
 *"\"success\":false"*)
-  echo -e "DDNS Updater: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s 
+  echo -e "DDNS Updater: $CURRENT_IP $record_name DDNS failed for $record_identifier ($CURRENT_IP). DUMPING RESULTS:\n$update" | logger -s 
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
     --data-raw '{
       "channel": "'$slackchannel'",
-      "text" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+      "text" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$CURRENT_IP')."
     }'
   fi
   if [[ $discorduri != "" ]]; then
     curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
     --data-raw '{
-      "content" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+      "content" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$CURRENT_IP')."
     }' $discorduri
   fi
   exit 1;;
 *)
-  logger "DDNS Updater: $ip $record_name DDNS updated."
+  logger "DDNS Updater: $CURRENT_IP $record_name DDNS updated."
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
     --data-raw '{
       "channel": "'$slackchannel'",
-      "text" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+      "text" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$CURRENT_IP'"
     }'
   fi
   if [[ $discorduri != "" ]]; then
     curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
     --data-raw '{
-      "content" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+      "content" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$CURRENT_IP'"
     }' $discorduri
   fi
   exit 0;;
