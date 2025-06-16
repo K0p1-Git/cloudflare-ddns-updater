@@ -12,7 +12,8 @@ sitename=""                                         # Title of site "Example Sit
 slackchannel=""                                     # Slack Channel #example
 slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
-
+telegramtoken=""                                    # Telegram bot API Token
+telegramchatid=""                                   # Telegram Chat ID
 
 ###########################################
 ## Check if we have a public IP
@@ -112,6 +113,12 @@ case "$update" in
       "content" : "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$CURRENT_IP')."
     }' $discorduri
   fi
+  if [[ $telegramtoken != "" ]] && [[ $telegramchatid != "" ]]; then
+    curl -H 'Content-Type: application/json' -X POST \
+    --data-raw '{
+      "chat_id": "'$telegramchatid'", "text": "'"$sitename"' DDNS Update Failed: '$record_name': '$record_identifier' ('$ip')."
+    }' https://api.telegram.org/bot$telegramtoken/sendMessage
+  fi
   exit 1;;
 *)
   logger "DDNS Updater: $CURRENT_IP $record_name DDNS updated."
@@ -127,6 +134,12 @@ case "$update" in
     --data-raw '{
       "content" : "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$CURRENT_IP'"
     }' $discorduri
+  fi
+  if [[ $telegramtoken != "" ]] && [[ $telegramchatid != "" ]]; then
+  curl -H 'Content-Type: application/json' -X POST \
+  --data-raw '{
+    "chat_id": "'$telegramchatid'", "text": "'"$sitename"' Updated: '$record_name''"'"'s'""' new IP Address is '$ip'"
+  }' https://api.telegram.org/bot$telegramtoken/sendMessage
   fi
   exit 0;;
 esac
