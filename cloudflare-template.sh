@@ -12,7 +12,19 @@ sitename=""                                         # Title of site "Example Sit
 slackchannel=""                                     # Slack Channel #example
 slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+healthchecksiouri=""                                # URI for healthchecks.io webhook (or any generic webhook to hit with a GET request)
 
+###########################################
+## Register a trap to hit the healthcheck endpoint when set
+###########################################
+do_healthcheck() {
+  RC=$?
+  # Only hit the healthcheck uri when we are going to exit status=0; else don't hit the endpoint, which will eventually cause an alarm
+  if [[ -n "$healthchecksiouri" && "$RC" == "0" ]]; then
+    curl -s -S -o /dev/null $healthchecksiouri
+  fi
+}
+trap do_healthcheck EXIT
 
 ###########################################
 ## Check if we have a public IP
