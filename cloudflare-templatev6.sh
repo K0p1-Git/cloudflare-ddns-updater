@@ -39,11 +39,15 @@ log_header_name="DDNS Updater_v6"
 # @slackchannel         - Slack Channel #example
 # @slackuri             - URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 # @discorduri           - URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+# @telegram_bot_token   - Telegram Bot API Token from @BotFather
+# @telegram_chat_id     - Telegram Chat ID
 # -------------------------------------------------- #
 sitename=""
 slackchannel=""
 slackuri=""
 discorduri=""
+telegram_bot_token=""
+telegram_chat_id=""
 
 
 
@@ -164,6 +168,11 @@ case "$update" in
                 \"content\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
             }" $discorduri
     fi
+    if [[ $telegram_bot_token != "" ]] && [[ $telegram_chat_id != "" ]]; then
+        curl -s -X POST https://api.telegram.org/bot$telegram_bot_token/sendMessage \
+            -d chat_id=$telegram_chat_id \
+            -d text="$sitename DDNS Update Failed: $record_name: $record_identifier ($ip)."
+    fi
     exit 1
     ;;
 *)
@@ -180,6 +189,11 @@ case "$update" in
             --data-raw "{
                 \"content\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
             }" $discorduri
+    fi
+    if [[ $telegram_bot_token != "" ]] && [[ $telegram_chat_id != "" ]]; then
+        curl -s -X POST https://api.telegram.org/bot$telegram_bot_token/sendMessage \
+            -d chat_id=$telegram_chat_id \
+            -d text="$sitename Updated: $record_name's new IPv6 Address is $ip"
     fi
     exit 0
     ;;
