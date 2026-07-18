@@ -12,6 +12,46 @@ This script is used to update Dynamic DNS (DDNS) service based on Cloudflare! Ac
 git clone https://github.com/K0p1-Git/cloudflare-ddns-updater.git
 ```
 
+## Configuration
+
+The scripts can be configured either by editing the configuration section inside the script or by providing environment variables.
+
+Environment variables override values configured in the script.
+
+### Common environment variables
+
+| Variable | Description |
+| --- | --- |
+| `AUTH_EMAIL` | Cloudflare account email |
+| `AUTH_METHOD` | Authentication method (`token` or `global`) |
+| `AUTH_KEY` | Cloudflare API Token or Global API Key |
+| `ZONE_IDENTIFIER` | Cloudflare Zone ID |
+| `RECORD_NAME` | DNS record to update |
+| `TTL` | DNS TTL in seconds |
+| `PROXY` | Enable Cloudflare proxy (`true`/`false`) |
+| `SITENAME` | Site name used in notifications |
+| `SLACK_CHANNEL` | Slack notification channel |
+| `SLACK_URI` | Slack webhook URL |
+| `DISCORD_URI` | Discord webhook URL |
+
+### IPv6-specific environment variables
+
+| Variable | Description |
+| --- | --- |
+| `STATIC_IPV6_MODE` | Enable static IPv6 mode |
+| `LAST_NOTABLE_HEXES` | IPv6 suffix pattern used in static IPv6 mode |
+
+Example:
+
+```bash
+export AUTH_EMAIL="user@example.com"
+export AUTH_KEY="your-api-token"
+export ZONE_IDENTIFIER="your-zone-id"
+export RECORD_NAME="home.example.com"
+
+./cloudflare-ddns.sh
+```
+
 ## Usage
 This script is used with crontab. Specify the frequency of execution through crontab.
 

@@ -12,7 +12,41 @@ sitename=""                                         # Title of site "Example Sit
 slackchannel=""                                     # Slack Channel #example
 slackuri=""                                         # URI for Slack WebHook "https://hooks.slack.com/services/xxxxx"
 discorduri=""                                       # URI for Discord WebHook "https://discordapp.com/api/webhooks/xxxxx"
+log_header_name="DDNS Updater"
 
+###########################################
+## Environment variable overrides
+###########################################
+
+auth_email="${AUTH_EMAIL:-$auth_email}"
+auth_method="${AUTH_METHOD:-$auth_method}"
+auth_key="${AUTH_KEY:-$auth_key}"
+zone_identifier="${ZONE_IDENTIFIER:-$zone_identifier}"
+record_name="${RECORD_NAME:-$record_name}"
+ttl="${TTL:-$ttl}"
+proxy="${PROXY:-$proxy}"
+sitename="${SITENAME:-$sitename}"
+slackchannel="${SLACK_CHANNEL:-$slackchannel}"
+slackuri="${SLACK_URI:-$slackuri}"
+discorduri="${DISCORD_URI:-$discorduri}"
+
+###########################################
+## Validate required configuration
+###########################################
+
+required_config=(
+    auth_email
+    auth_key
+    zone_identifier
+    record_name
+)
+
+for config in "${required_config[@]}"; do
+    if [[ -z "${!config}" ]]; then
+        logger -s "$log_header_name: Missing required configuration: $config"
+        exit 1
+    fi
+done
 
 ###########################################
 ## Check if we have a public IP
@@ -29,16 +63,16 @@ for service in ${IP_SERVICES[@]}; do
   RAW_IP=$(curl -s $service)
   if [[ $RAW_IP =~ $REGEX_IPV4 ]]; then
     CURRENT_IP=$BASH_REMATCH
-    logger -s "DDNS Updater: Fetched IP $CURRENT_IP"
+    logger -s "$log_header_name: Fetched IP $CURRENT_IP"
     break
   else
-    logger -s "DDNS Updater: IP service $service failed."
+    logger -s "$log_header_name: IP service $service failed."
   fi
 done
 
 # Exit if IP fetching failed
 if [[ -z "$CURRENT_IP" ]]; then
-  logger -s "DDNS Updater: Failed to find a valid IP."
+  logger -s "$log_header_name: Failed to find a valid IP."
   exit 2
 fi
 
@@ -55,7 +89,7 @@ fi
 ## Seek for the A record
 ###########################################
 
-logger "DDNS Updater: Check Initiated"
+logger "$log_header_name: Check Initiated"
 record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=A&name=$record_name" \
                       -H "X-Auth-Email: $auth_email" \
                       -H "$auth_header $auth_key" \
@@ -65,7 +99,7 @@ record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identi
 ## Check if the domain has an A record
 ###########################################
 if [[ $record == *"\"count\":0"* ]]; then
-  logger -s "DDNS Updater: Record does not exist, perhaps create one first? (${CURRENT_IP} for ${record_name})"
+  logger -s "$log_header_name: Record does not exist, perhaps create one first? (${CURRENT_IP} for ${record_name})"
   exit 1
 fi
 
@@ -75,7 +109,7 @@ fi
 old_ip=$(echo "$record" | sed -E 's/.*"content":"(([0-9]{1,3}\.){3}[0-9]{1,3})".*/\1/')
 # Compare if they're the same
 if [[ $CURRENT_IP == $old_ip ]]; then
-  logger "DDNS Updater: IP ($CURRENT_IP) for ${record_name} has not changed."
+  logger "$log_header_name: IP ($CURRENT_IP) for ${record_name} has not changed."
   exit 0
 fi
 
@@ -98,7 +132,7 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
 ###########################################
 case "$update" in
 *"\"success\":false"*)
-  echo -e "DDNS Updater: $CURRENT_IP $record_name DDNS failed for $record_identifier ($CURRENT_IP). DUMPING RESULTS:\n$update" | logger -s 
+  echo -e "$log_header_name: $CURRENT_IP $record_name DDNS failed for $record_identifier ($CURRENT_IP). DUMPING RESULTS:\n$update" | logger -s 
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
     --data-raw '{
@@ -114,7 +148,7 @@ case "$update" in
   fi
   exit 1;;
 *)
-  logger "DDNS Updater: $CURRENT_IP $record_name DDNS updated."
+  logger "$log_header_name: $CURRENT_IP $record_name DDNS updated."
   if [[ $slackuri != "" ]]; then
     curl -L -X POST $slackuri \
     --data-raw '{

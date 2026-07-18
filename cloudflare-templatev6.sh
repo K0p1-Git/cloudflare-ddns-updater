@@ -45,7 +45,44 @@ slackchannel=""
 slackuri=""
 discorduri=""
 
+###########################################
+## Environment variable overrides
+###########################################
 
+auth_email="${AUTH_EMAIL:-$auth_email}"
+auth_method="${AUTH_METHOD:-$auth_method}"
+auth_key="${AUTH_KEY:-$auth_key}"
+zone_identifier="${ZONE_IDENTIFIER:-$zone_identifier}"
+
+record_name="${RECORD_NAME:-$record_name}"
+ttl="${TTL:-$ttl}"
+proxy="${PROXY:-$proxy}"
+
+static_IPv6_mode="${STATIC_IPV6_MODE:-$static_IPv6_mode}"
+last_notable_hexes="${LAST_NOTABLE_HEXES:-$last_notable_hexes}"
+
+sitename="${SITENAME:-$sitename}"
+slackchannel="${SLACK_CHANNEL:-$slackchannel}"
+slackuri="${SLACK_URI:-$slackuri}"
+discorduri="${DISCORD_URI:-$discorduri}"
+
+###########################################
+## Validate required configuration
+###########################################
+
+required_config=(
+    auth_email
+    auth_key
+    zone_identifier
+    record_name
+)
+
+for config in "${required_config[@]}"; do
+    if [[ -z "${!config}" ]]; then
+        logger -s "$log_header_name: Missing required configuration: $config"
+        exit 1
+    fi
+done
 
 ################################################
 ## Make sure we have a valid IPv6 connection
