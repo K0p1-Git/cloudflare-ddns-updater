@@ -48,9 +48,22 @@ discorduri=""
 
 
 ################################################
+## Prevent overlapping runs
+################################################
+lock_file="/var/lock/cloudflare-ddns-v6.lock"
+exec 9>"$lock_file" || { logger -s "$log_header_name: Unable to open lock file $lock_file."; exit 1; }
+if ! flock -n 9; then
+    logger -s "$log_header_name: Another instance is already running, exiting."
+    exit 0
+fi
+
+# Timeouts and retries applied to every curl call
+curl_opts=(--max-time 10 --retry 2)
+
+################################################
 ## Make sure we have a valid IPv6 connection
 ################################################
-if ! { curl -6 -s --head --fail https://ipv6.google.com >/dev/null; }; then
+if ! { curl "${curl_opts[@]}" -6 -s --head --fail https://ipv6.google.com >/dev/null; }; then
     logger -s "$log_header_name: Unable to establish a valid IPv6 connection to a known host."
     exit 1
 fi
@@ -71,11 +84,11 @@ if $static_IPv6_mode; then
     fi
 else
     # Use external services to discover our system's preferred IPv6 address
-    ip=$(curl -s -6 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip')
+    ip=$(curl "${curl_opts[@]}" -s -6 https://cloudflare.com/cdn-cgi/trace | grep -E '^ip')
     ret=$?
     if [[ ! $ret == 0 ]]; then # In the case that cloudflare failed to return an ip.
         # Attempt to get the ip from other websites.
-        ip=$(curl -s -6 https://api64.ipify.org || curl -s -6 https://ipv6.icanhazip.com)
+        ip=$(curl "${curl_opts[@]}" -s -6 https://api64.ipify.org || curl "${curl_opts[@]}" -s -6 https://ipv6.icanhazip.com)
     else
         # Extract just the ip from the ip line from cloudflare.
         ip=$(echo $ip | sed -E "s/^ip=($ipv6_regex)$/\1/")
@@ -101,10 +114,17 @@ fi
 ## Seek for the AAAA record
 ################################################
 logger "$log_header_name: Check Initiated"
-record=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=AAAA&name=$record_name" \
+record=$(curl "${curl_opts[@]}" -s -X GET "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records?type=AAAA&name=$record_name" \
     -H "X-Auth-Email: $auth_email" \
     -H "$auth_header $auth_key" \
     -H "Content-Type: application/json")
+lookup_status=$?
+
+# Exit if the lookup failed or Cloudflare did not report success
+if [[ $lookup_status -ne 0 || -z "$record" || $record != *"\"success\":true"* ]]; then
+    logger -s "$log_header_name: Record lookup failed for ${record_name} (curl exit ${lookup_status}). Response: ${record}"
+    exit 1
+fi
 
 ################################################
 ## Check if the domain has an AAAA record
@@ -136,51 +156,59 @@ fi
 ################################################
 record_identifier=$(echo "$record" | sed -E 's/.*"id":"([A-Za-z0-9_]+)".*/\1/')
 
+# Exit if either value is empty or sed found no match (returns the whole record)
+if [[ -z "$old_ip" || -z "$record_identifier" || "$record_identifier" == "$record" ]]; then
+    logger -s "$log_header_name: Unable to extract record ID for ${record_name}, not updating."
+    exit 1
+fi
+
 ################################################
 ## Change the IP@Cloudflare using the API
 ################################################
-update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier" \
+update=$(curl "${curl_opts[@]}" -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_identifier/dns_records/$record_identifier" \
     -H "X-Auth-Email: $auth_email" \
     -H "$auth_header $auth_key" \
     -H "Content-Type: application/json" \
     --data "{\"content\":\"$ip\",\"ttl\":$ttl,\"proxied\":$proxy}")
+update_status=$?
 
 ################################################
 ## Report the status
 ################################################
+# Only an explicit success counts; an empty or malformed response is a failure
 case "$update" in
-*"\"success\":false"*)
-    echo -e "$log_header_name: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s
-    if [[ $slackuri != "" ]]; then
-        curl -L -X POST $slackuri \
-            --data-raw "{
-                \"channel\": \"$slackchannel\",
-                \"text\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
-            }"
-    fi
-    if [[ $discorduri != "" ]]; then
-        curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
-            --data-raw "{
-                \"content\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
-            }" $discorduri
-    fi
-    exit 1
-    ;;
-*)
+*"\"success\":true"*)
     logger "$log_header_name: $ip $record_name DDNS updated."
     if [[ $slackuri != "" ]]; then
-        curl -L -X POST $slackuri \
+        curl "${curl_opts[@]}" -L -X POST $slackuri \
             --data-raw "{
                 \"channel\": \"$slackchannel\",
                 \"text\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
             }"
     fi
     if [[ $discorduri != "" ]]; then
-        curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+        curl "${curl_opts[@]}" -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
             --data-raw "{
                 \"content\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
             }" $discorduri
     fi
     exit 0
+    ;;
+*)
+    echo -e "$log_header_name: $ip $record_name DDNS failed for $record_identifier ($ip) (curl exit $update_status). DUMPING RESULTS:\n$update" | logger -s
+    if [[ $slackuri != "" ]]; then
+        curl "${curl_opts[@]}" -L -X POST $slackuri \
+            --data-raw "{
+                \"channel\": \"$slackchannel\",
+                \"text\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
+            }"
+    fi
+    if [[ $discorduri != "" ]]; then
+        curl "${curl_opts[@]}" -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
+            --data-raw "{
+                \"content\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
+            }" $discorduri
+    fi
+    exit 1
     ;;
 esac
