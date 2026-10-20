@@ -98,6 +98,43 @@ else
 fi
 
 ################################################
+## Notifications
+################################################
+# Escape a string for use inside a JSON string value
+json_escape() {
+    local s="$1"
+    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"; s="${s//$'\t'/\\t}"; s="${s//$'\r'/}"; s="${s//$'\n'/\\n}"
+    printf '%s' "$s"
+}
+
+# POST a JSON payload to a webhook and log whether it was accepted (any 2xx status)
+post_webhook() {
+    local service="$1" uri="$2" payload="$3" code rc
+    code=$(curl -s -L -o /dev/null -w '%{http_code}' -X POST \
+        -H "Accept: application/json" -H "Content-Type: application/json" --data-raw "$payload" "$uri")
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        logger -s "$log_header_name: $service notification failed (curl exit $rc)."
+    elif [[ "$code" != 2* ]]; then
+        logger -s "$log_header_name: $service notification failed (HTTP $code)."
+    else
+        logger "$log_header_name: $service notification sent."
+    fi
+}
+
+# Send a message to every configured webhook; failures are logged but don't change the exit code
+notify() {
+    local msg
+    msg="$(json_escape "$1")"
+    if [[ -n "$slackuri" ]]; then
+        post_webhook Slack "$slackuri" "{\"channel\":\"$(json_escape "$slackchannel")\",\"text\":\"$msg\"}"
+    fi
+    if [[ -n "$discorduri" ]]; then
+        post_webhook Discord "$discorduri" "{\"content\":\"$msg\"}"
+    fi
+}
+
+################################################
 ## Seek for the AAAA record
 ################################################
 logger "$log_header_name: Check Initiated"
@@ -151,36 +188,12 @@ update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_iden
 case "$update" in
 *"\"success\":false"*)
     echo -e "$log_header_name: $ip $record_name DDNS failed for $record_identifier ($ip). DUMPING RESULTS:\n$update" | logger -s
-    if [[ $slackuri != "" ]]; then
-        curl -L -X POST $slackuri \
-            --data-raw "{
-                \"channel\": \"$slackchannel\",
-                \"text\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
-            }"
-    fi
-    if [[ $discorduri != "" ]]; then
-        curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
-            --data-raw "{
-                \"content\": \"$sitename DDNS Update Failed: $record_name: $record_identifier ($ip).\"
-            }" $discorduri
-    fi
+    notify "$sitename DDNS Update Failed: $record_name: $record_identifier ($ip)."
     exit 1
     ;;
 *)
     logger "$log_header_name: $ip $record_name DDNS updated."
-    if [[ $slackuri != "" ]]; then
-        curl -L -X POST $slackuri \
-            --data-raw "{
-                \"channel\": \"$slackchannel\",
-                \"text\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
-            }"
-    fi
-    if [[ $discorduri != "" ]]; then
-        curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST \
-            --data-raw "{
-                \"content\": \"$sitename Updated: $record_name's new IPv6 Address is $ip\"
-            }" $discorduri
-    fi
+    notify "$sitename Updated: $record_name's new IPv6 Address is $ip"
     exit 0
     ;;
 esac
